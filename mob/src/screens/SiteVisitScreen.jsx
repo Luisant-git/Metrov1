@@ -25,7 +25,7 @@ import { Field, AppTextInput, AppTextArea } from '../components/FormField';
 import { RadioGroup } from '../components/RadioGroup';
 import { SuccessModal } from '../components/SuccessModal';
 import ProjectPicker from '../components/ProjectPicker';
-import LogoImage from '../assets/logo1.png';
+import TopBar from '../components/TopBar';
 import { site as siteApi } from '../services/site';
 import { customer as customerApi } from '../services/customer';
 import { siteVisit as siteVisitApi } from '../services/siteVisit';
@@ -467,35 +467,11 @@ export default function SiteVisitScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#1D6FB9" />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.pageShell}>
-          <LinearGradient
-            colors={['#1D6FB9', '#175a97']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.header}>
-            <View style={styles.headerRow}>
-              <View style={styles.headerBrand}>
-                <View style={styles.headerLogoBox}>
-                  <Image source={LogoImage} style={styles.headerLogo} resizeMode="contain" />
-                </View>
-                <View style={styles.headerTextWrap}>
-                  <Text style={styles.headerTitle}>Metrohomes</Text>
-                  <View style={styles.headerIdentity}>
-                    <Text style={styles.headerSub}>
-                      {ROLE_LABELS[user?.role] || user?.role || 'User'} · {(user?.name || '').split(' ')[0]}
-                      {user?.employeeCode ? ` · ${user.employeeCode}` : ''}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <Pressable onPress={handleLogout} style={styles.logoutBtn} hitSlop={8}>
-                <Ionicons name="log-out-outline" size={20} color={colors.white} />
-              </Pressable>
-            </View>
-          </LinearGradient>
+          <TopBar />
 
           <View style={styles.contentCard}>
             <View style={styles.contentHeader}>
@@ -1007,7 +983,7 @@ function ChoiceModal({ visible, title, options, selected, onSelect, onClose }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.gray50 },
+  safe: { flex: 1, backgroundColor: colors.primary },
   centerSafe: { flex: 1, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: colors.slate500, fontSize: 13, marginTop: 12 },
   flex: { flex: 1, minHeight: 0 },
@@ -1015,7 +991,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     backgroundColor: colors.gray50,
-    paddingTop: 12,
   },
   header: {
     flexDirection: 'row',

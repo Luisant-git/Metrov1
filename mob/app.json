@@ -1,6 +1,19 @@
 {
+  "name": "MetroV1",
   "expo": {
     "name": "MetroV1",
-
+    "slug": "metrov1",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.companyname.metrov1"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b7ff6db1-0ff1-4ef8-aeea-ff1285761d24"
+      }
+    }
   }
 }
