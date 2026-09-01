@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "MetroV1",
   "expo": {
     "name": "MetroV1",
@@ -16,4 +17,8 @@
       }
     }
   }
+=======
+  "name": "mob",
+  "displayName": "mob"
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 }

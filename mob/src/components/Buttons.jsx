@@ -6,12 +6,18 @@ import {
   Text,
   View,
 } from 'react-native';
+<<<<<<< HEAD
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../theme';
 
 const PRIMARY_GRADIENT = ['#1D6FB9', '#175a97'];
 
 // Primary gradient button matching the PWA gradient + shadow + icon.
+=======
+import { colors } from '../theme';
+
+// Primary gradient-styled button (gradient approximated with solid + shadow to match PWA blue).
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 export function PrimaryButton({
   title,
   onPress,
@@ -20,6 +26,7 @@ export function PrimaryButton({
   icon,
   style,
   textStyle,
+<<<<<<< HEAD
   variant = 'md',
 }) {
   const isDisabled = disabled || loading;
@@ -31,17 +38,26 @@ export function PrimaryButton({
       <Text style={[styles.text, variant === 'sm' ? styles.textSm : null, textStyle]}>{title}</Text>
     </View>
   );
+=======
+}) {
+  const isDisabled = disabled || loading;
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   return (
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
       style={({ pressed }) => [
+<<<<<<< HEAD
         styles.buttonWrap,
         variant === 'sm' ? styles.buttonWrapSm : null,
+=======
+        styles.button,
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
         pressed && !isDisabled ? styles.pressed : null,
         isDisabled ? styles.disabled : null,
         style,
       ]}>
+<<<<<<< HEAD
       <LinearGradient
         colors={PRIMARY_GRADIENT}
         start={{ x: 0, y: 0 }}
@@ -49,6 +65,16 @@ export function PrimaryButton({
         style={[styles.button, variant === 'sm' ? styles.buttonSm : null]}>
         {content}
       </LinearGradient>
+=======
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.white} />
+      ) : (
+        <View style={styles.content}>
+          {icon}
+          <Text style={[styles.text, textStyle]}>{title}</Text>
+        </View>
+      )}
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     </Pressable>
   );
 }
@@ -70,14 +96,24 @@ export function SecondaryButton({ title, onPress, disabled, style, textStyle }) 
 }
 
 const styles = StyleSheet.create({
+<<<<<<< HEAD
   buttonWrap: {
     borderRadius: 10,
     overflow: 'hidden',
+=======
+  button: {
+    backgroundColor: colors.primary,
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 18,
     elevation: 6,
+<<<<<<< HEAD
     minHeight: 48,
     width: '100%',
   },
@@ -99,6 +135,8 @@ const styles = StyleSheet.create({
   buttonSm: {
     minHeight: 40,
     paddingVertical: 10,
+=======
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   },
   content: {
     flexDirection: 'row',
@@ -111,9 +149,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
+<<<<<<< HEAD
   textSm: {
     fontSize: 12,
   },
+=======
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   pressed: {
     opacity: 0.9,
   },
@@ -122,6 +163,7 @@ const styles = StyleSheet.create({
   },
   secondary: {
     backgroundColor: colors.gray100,
+<<<<<<< HEAD
     minHeight: 48,
     paddingVertical: 14,
     paddingHorizontal: 18,
@@ -129,6 +171,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
+=======
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   },
   secondaryPressed: {
     backgroundColor: colors.gray200,

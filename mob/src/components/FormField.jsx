@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors } from '../theme';
@@ -19,12 +20,26 @@ export function Field({ label, required, error, children, icon, variant = 'defau
           {required ? <Text style={styles.required}> *</Text> : null}
         </Text>
       </View>
+=======
+import React from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { colors } from '../theme';
+
+export function Field({ label, required, error, children }) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>
+        {label}
+        {required ? <Text style={styles.required}> *</Text> : null}
+      </Text>
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
       {children}
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
 }
 
+<<<<<<< HEAD
 // variant: 'field' = PWA .input-field (radius 12, gray-200 border, ~46px tall)
 //          'login' = PWA login input (radius 6, slate-300 border)
 export const AppTextInput = React.forwardRef(function AppTextInput(
@@ -60,12 +75,30 @@ export const AppTextInput = React.forwardRef(function AppTextInput(
             {...props}
           />
         </View>
+=======
+export const AppTextInput = React.forwardRef(function AppTextInput(
+  { icon, error, style, hint, ...props },
+  ref,
+) {
+  return (
+    <View>
+      <View style={[styles.inputRow, error ? styles.inputError : null]}>
+        {icon ? <View style={styles.iconBox}>{icon}</View> : null}
+        <TextInput
+          ref={ref}
+          placeholderTextColor={colors.slate400}
+          selectionColor={colors.primary}
+          style={[styles.input, icon ? styles.inputWithIcon : null, style]}
+          {...props}
+        />
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
       </View>
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
   );
 });
 
+<<<<<<< HEAD
 export const AppTextArea = React.forwardRef(function AppTextArea(
   { error, style, onFocus, onBlur, ...props },
   ref,
@@ -112,6 +145,15 @@ const styles = StyleSheet.create({
   labelLogin: {
     fontSize: 11,
     fontWeight: '500',
+=======
+const styles = StyleSheet.create({
+  field: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     color: colors.slate600,
     marginBottom: 6,
   },
@@ -128,15 +170,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.white,
     borderWidth: 1,
+<<<<<<< HEAD
     borderColor: colors.gray200,
     borderRadius: 12,
     minHeight: 46,
   },
   inputRowLogin: {
+=======
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     borderColor: colors.slate300,
     borderRadius: 6,
     minHeight: 44,
   },
+<<<<<<< HEAD
   inputRowFocused: {
     borderColor: colors.primary,
   },
@@ -156,11 +202,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryFocusRing,
     padding: 3,
   },
+=======
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   inputError: {
     borderColor: colors.red500,
   },
   input: {
     flex: 1,
+<<<<<<< HEAD
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
@@ -178,10 +227,20 @@ const styles = StyleSheet.create({
   },
   inputLoginWithIcon: {
     paddingLeft: 10,
+=======
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: colors.slate900,
+  },
+  inputWithIcon: {
+    paddingLeft: 8,
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   },
   iconBox: {
     paddingLeft: 12,
   },
+<<<<<<< HEAD
   iconBoxLogin: {
     paddingLeft: 12,
   },
@@ -201,6 +260,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     backgroundColor: colors.primarySoft,
   },
+=======
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   hint: {
     fontSize: 11,
     color: colors.slate400,

@@ -1,4 +1,5 @@
 import React from 'react';
+<<<<<<< HEAD
 import { StatusBar, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -137,6 +138,17 @@ function MainTabs() {
     </Tab.Navigator>
   );
 }
+=======
+import { StatusBar, StyleSheet, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useAuth } from '../context/AuthContext';
+import LoginScreen from '../screens/LoginScreen';
+import SiteVisitScreen from '../screens/SiteVisitScreen';
+import { colors } from '../theme';
+
+const Stack = createNativeStackNavigator();
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 
 export default function AppNavigator() {
   const { isAuthenticated, initializing } = useAuth();
@@ -154,7 +166,11 @@ export default function AppNavigator() {
           contentStyle: { backgroundColor: colors.white },
         }}>
         {isAuthenticated ? (
+<<<<<<< HEAD
           <Stack.Screen name="MainTabs" component={MainTabs} />
+=======
+          <Stack.Screen name="SiteVisit" component={SiteVisitScreen} />
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
         )}
@@ -168,6 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
+<<<<<<< HEAD
   tabBarContainer: {
     width: '100%',
     flexDirection: 'row',
@@ -208,4 +225,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
+=======
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 });

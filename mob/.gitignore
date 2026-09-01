@@ -2,9 +2,12 @@
 #
 .DS_Store
 
+<<<<<<< HEAD
 
 .expo/
 
+=======
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 # Xcode
 #
 build/
@@ -43,10 +46,13 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
+<<<<<<< HEAD
 # Expo Native directories (let EAS prebuild them)
 android/
 ios/
 
+=======
+>>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 # fastlane
 #
 # It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
