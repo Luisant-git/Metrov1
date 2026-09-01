@@ -8,8 +8,17 @@ export const colors = {
   primarySoft: '#EBF3FB',
 
   blue50: '#EFF6FF',
-  blue600: '#2563EB',
-  blue700: '#1D4ED8',
+  blue100: '#D9E6F5',
+  blue200: '#B9CFEA',
+  blue300: '#80AFD9',
+  blue400: '#4D8FC9',
+  blue500: '#1D6FB9',
+  blue600: '#1D6FB9',
+  blue700: '#165A94',
+  blue800: '#114068',
+  blue900: '#0F2C4E',
+  blue950: '#0A1E36',
+  primaryFocusRing: 'rgba(29,111,185,0.20)',
 
   green50: '#F0FDF4',
   green100: '#DCFCE7',
@@ -37,6 +46,7 @@ export const colors = {
 
   white: '#FFFFFF',
   black: '#000000',
+  gray50: '#F9FAFB',
   gray100: '#F3F4F6',
   gray200: '#E5E7EB',
   gray400: '#9CA3AF',

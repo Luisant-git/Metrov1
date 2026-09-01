@@ -1,29 +1,35 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
+  Image,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { PrimaryButton, SecondaryButton } from '../components/Buttons';
-import { Field, AppTextInput } from '../components/FormField';
+import { Field, AppTextInput, AppTextArea } from '../components/FormField';
 import { RadioGroup } from '../components/RadioGroup';
 import { SuccessModal } from '../components/SuccessModal';
 import ProjectPicker from '../components/ProjectPicker';
+import LogoImage from '../assets/logo1.png';
 import { site as siteApi } from '../services/site';
 import { customer as customerApi } from '../services/customer';
 import { siteVisit as siteVisitApi } from '../services/siteVisit';
+import { mapsService } from '../services/maps';
 
 const timeSlots = [
   '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
@@ -42,6 +48,15 @@ const occupations = [
   { label: 'Salaried', value: 'Salaried' },
   { label: 'Business', value: 'Business' },
 ];
+
+const ROLE_LABELS = {
+  Admin: 'Admin',
+  Director: 'Director',
+  'Regional Manager': 'Reg. Manager',
+  'Branch Manager': 'Branch Manager',
+  BDM: 'Business Dev. Manager',
+  'Sales Manager': 'Sales Manager',
+};
 
 const purchaseModes = [
   { label: 'Own Funding', value: 'Own Funding' },
@@ -91,9 +106,109 @@ export default function SiteVisitScreen({ navigation }) {
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
 
+  const [locLoading, setLocLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [distLoading, setDistLoading] = useState(false);
+  const [distanceInfo, setDistanceInfo] = useState(null);
+
   const otpTimerRef = useRef(null);
 
   const dateOptions = useMemo(() => buildDateOptions(30), []);
+
+  const selectedProject = useMemo(() => sites.find((s) => s.id === Number(form.projectId)), [sites, form.projectId]);
+  const availablePlots = useMemo(() => (selectedProject?.plots || []).filter((p) => p.status === 'Active'), [selectedProject]);
+  const selectedSite = useMemo(() => availablePlots.find((p) => p.id === Number(form.siteId)), [availablePlots, form.siteId]);
+
+  const handleLocationInputChange = async (val) => {
+    setField('location', val);
+    if (val && val.trim().length > 2) {
+      try {
+        const res = await mapsService.getAutocomplete(val);
+        if (res?.suggestions) {
+          setSuggestions(res.suggestions);
+          setShowSuggestions(true);
+        }
+      } catch (err) {
+        // ignore
+      }
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectSuggestion = async (sug) => {
+    const text = sug.description || sug.main_text || sug.formatted_address;
+    setField('location', text);
+    setShowSuggestions(false);
+    try {
+      const geocodeRes = await mapsService.geocode(text);
+      if (geocodeRes?.formatted_address) {
+        setField('location', geocodeRes.formatted_address);
+      }
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const getLocation = () => {
+    setLocLoading(true);
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const latlngStr = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
+          try {
+            const geoRes = await mapsService.geocode(null, latlngStr);
+            if (geoRes?.formatted_address) {
+              setField('location', geoRes.formatted_address);
+              toast.success('GPS location captured!');
+            } else {
+              setField('location', latlngStr);
+              toast.success('GPS coordinates captured!');
+            }
+          } catch (e) {
+            setField('location', latlngStr);
+            toast.success('GPS coordinates captured!');
+          } finally {
+            setLocLoading(false);
+          }
+        },
+        (err) => {
+          setLocLoading(false);
+          toast.error('Unable to fetch GPS location. Please enter address manually.');
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    } else {
+      setLocLoading(false);
+      toast.error('GPS is not supported on this device. Enter address manually.');
+    }
+  };
+
+  useEffect(() => {
+    const calcDist = async () => {
+      if (form.location && form.location.trim().length > 3 && selectedProject?.location) {
+        setDistLoading(true);
+        try {
+          const res = await mapsService.calculateDistance(form.location, selectedProject.location);
+          if (res && res.success) {
+            setDistanceInfo(res);
+          } else {
+            setDistanceInfo(null);
+          }
+        } catch (err) {
+          setDistanceInfo(null);
+        } finally {
+          setDistLoading(false);
+        }
+      } else {
+        setDistanceInfo(null);
+      }
+    };
+    const timer = setTimeout(calcDist, 600);
+    return () => clearTimeout(timer);
+  }, [form.location, selectedProject]);
 
   const fetchSites = useCallback(async () => {
     setLoadingSites(true);
@@ -134,9 +249,7 @@ export default function SiteVisitScreen({ navigation }) {
     }, 1000);
   };
 
-  const selectedProject = sites.find((s) => s.id === Number(form.projectId));
-  const availablePlots = (selectedProject?.plots || []).filter((p) => p.status === 'Active');
-  const selectedSite = availablePlots.find((p) => p.id === Number(form.siteId));
+
 
   const setField = (key, val) => {
     setForm((p) => ({ ...p, [key]: val }));
@@ -346,6 +459,7 @@ export default function SiteVisitScreen({ navigation }) {
   if (loadingSites) {
     return (
       <SafeAreaView style={styles.centerSafe}>
+        <StatusBar barStyle="light-content" backgroundColor="#1D6FB9" />
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading projects…</Text>
       </SafeAreaView>
@@ -354,49 +468,75 @@ export default function SiteVisitScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor="#1D6FB9" />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.pageShell}>
-          <View style={styles.header}>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.headerTitle}>Site Visit Registration</Text>
-              <Text style={styles.headerSub}>Register new customer and schedule site visit</Text>
-            </View>
-            <Pressable onPress={handleLogout} style={styles.logoutBtn}>
-              <Text style={styles.logoutText}>Logout</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.contentCard}>
-            {/* Stepper */}
-            <View style={styles.stepper}>
-              {[1, 2, 3].map((s) => (
-                <View key={s} style={styles.stepFlex}>
-                  <View style={[styles.stepBar, s <= step ? styles.stepBarActive : null]} />
-                  <View style={[styles.stepDot, s <= step ? styles.stepDotActive : styles.stepDotInactive]}>
-                    <Text style={s <= step ? styles.stepDotTextActive : styles.stepDotText}>
-                      {s < step ? '✓' : s}
+          <LinearGradient
+            colors={['#1D6FB9', '#175a97']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.header}>
+            <View style={styles.headerRow}>
+              <View style={styles.headerBrand}>
+                <View style={styles.headerLogoBox}>
+                  <Image source={LogoImage} style={styles.headerLogo} resizeMode="contain" />
+                </View>
+                <View style={styles.headerTextWrap}>
+                  <Text style={styles.headerTitle}>Metrohomes</Text>
+                  <View style={styles.headerIdentity}>
+                    <Text style={styles.headerSub}>
+                      {ROLE_LABELS[user?.role] || user?.role || 'User'} · {(user?.name || '').split(' ')[0]}
+                      {user?.employeeCode ? ` · ${user.employeeCode}` : ''}
                     </Text>
                   </View>
-                  {s < 3 ? <View style={[styles.stepBar, s < step ? styles.stepBarActive : null]} /> : null}
                 </View>
-              ))}
+              </View>
+              <Pressable onPress={handleLogout} style={styles.logoutBtn} hitSlop={8}>
+                <Ionicons name="log-out-outline" size={20} color={colors.white} />
+              </Pressable>
             </View>
-            <Text style={styles.stepTitle}>
-              {step === 1 ? 'Personal Info & Occupation' : step === 2 ? 'Visit & Purchase Details' : 'Review & Submit'}
-            </Text>
+          </LinearGradient>
 
-            <ScrollView
-              style={styles.scroller}
-              contentContainerStyle={styles.scroll}
-              keyboardShouldPersistTaps="handled">
+          <View style={styles.contentCard}>
+            <View style={styles.contentHeader}>
+              {/* Page heading */}
+              <Text style={styles.pageTitle}>Customer Registration</Text>
+              <Text style={styles.pageSubtitle}>Register new customer and schedule site visit</Text>
+
+              {/* Stepper */}
+              <View style={styles.stepper}>
+                {[1, 2, 3].map((s) => (
+                  <View key={s} style={styles.stepFlex}>
+                    <View style={[styles.stepBar, s <= step ? styles.stepBarActive : null]} />
+                    <View style={[styles.stepDot, s <= step ? styles.stepDotActive : styles.stepDotInactive]}>
+                      {s < step ? (
+                        <Text style={styles.stepDotTextActive}>✓</Text>
+                      ) : (
+                        <Text style={s <= step ? styles.stepDotTextActive : styles.stepDotText}>{s}</Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.stepTitle}>
+                {step === 1 ? 'Personal Info & Occupation' : step === 2 ? 'Visit Details' : 'Review & Submit'}
+              </Text>
+            </View>
+
+          <ScrollView
+            style={styles.scroller}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
               {/* STEP 1 */}
               {step === 1 && (
                 <View>
                   <View style={styles.bannerBlue}>
-                    <Text style={styles.bannerText}>Enter customer details and verify mobile number</Text>
+                    <Ionicons name="person-outline" size={14} color={colors.blue700} />
+                    <Text style={styles.bannerText}>Enter customer details</Text>
                   </View>
 
-              <Field label="Applicant Name" required error={errors.name}>
+              <Field label="Applicant Name" required error={errors.name} icon={<Ionicons name="person-outline" size={14} color={colors.gray400} />}>
                 <AppTextInput
                   value={form.name}
                   onChangeText={(v) => setField('name', v)}
@@ -405,7 +545,7 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-              <Field label="Mobile Number" required error={errors.mobile}>
+              <Field label="Mobile Number" required error={errors.mobile} icon={<Ionicons name="call-outline" size={14} color={colors.gray400} />}>
                 <View style={styles.mobileRow}>
                   <View style={styles.mobileInputWrap}>
                     <AppTextInput
@@ -466,6 +606,7 @@ export default function SiteVisitScreen({ navigation }) {
 
               {otpVerified && (
                 <View style={styles.verifiedBanner}>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.green600} />
                   <Text style={styles.verifiedText}>Mobile verified ✓</Text>
                 </View>
               )}
@@ -481,15 +622,13 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-              <Field label="Address" required error={errors.address}>
-                <TextInput
+              <Field label="Address" required error={errors.address} icon={<Ionicons name="location-outline" size={14} color={colors.gray400} />}>
+                <AppTextArea
                   value={form.address}
                   onChangeText={(v) => setField('address', v)}
                   placeholder="Full address"
-                  placeholderTextColor={colors.slate400}
-                  multiline
+                  error={!!errors.address}
                   numberOfLines={3}
-                  style={[styles.textArea, errors.address ? styles.inputError : null]}
                 />
               </Field>
 
@@ -504,7 +643,7 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-              <Field label="Occupation" required error={errors.occupation}>
+              <Field label="Occupation" required error={errors.occupation} icon={<Ionicons name="briefcase-outline" size={14} color={colors.gray400} />}>
                 <RadioGroup
                   options={occupations}
                   value={form.occupation}
@@ -519,11 +658,12 @@ export default function SiteVisitScreen({ navigation }) {
           {step === 2 && (
             <View>
               <View style={styles.bannerGreen}>
+                <Ionicons name="business-outline" size={14} color={colors.green700} />
                 <Text style={styles.bannerTextGreen}>Visit & purchase details</Text>
               </View>
 
-              <Field label="Select Project" required error={errors.projectId}>
-                <Pressable onPress={() => setProjectPickerOpen(true)} style={styles.pickerBox}>
+              <Field label="Select Project" required error={errors.projectId} icon={<Ionicons name="business-outline" size={14} color={colors.gray400} />}>
+                <Pressable onPress={() => setProjectPickerOpen(true)} style={[styles.pickerBox, projectPickerOpen && styles.pickerBoxActive]}>
                   {selectedProject ? (
                     <Text style={styles.pickerValue}>{selectedProject.name} — {selectedProject.location}</Text>
                   ) : (
@@ -553,7 +693,7 @@ export default function SiteVisitScreen({ navigation }) {
                 </View>
               )}
 
-              <Field label="Purchase Mode" required error={errors.purchaseMode}>
+              <Field label="Purchase Mode" required error={errors.purchaseMode} icon={<Ionicons name="cash-outline" size={14} color={colors.gray400} />}>
                 <RadioGroup
                   options={purchaseModes}
                   value={form.purchaseMode}
@@ -562,8 +702,8 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-              <Field label="Visit Date" required error={errors.visitDate}>
-                <Pressable onPress={() => setDatePickerOpen(true)} style={styles.pickerBox}>
+              <Field label="Visit Date" required error={errors.visitDate} icon={<Ionicons name="calendar-outline" size={14} color={colors.gray400} />}>
+                <Pressable onPress={() => setDatePickerOpen(true)} style={[styles.pickerBox, datePickerOpen && styles.pickerBoxActive]}>
                   {form.visitDate ? (
                     <Text style={styles.pickerValue}>
                       {dateOptions.find((d) => d.value === form.visitDate)?.label || form.visitDate}
@@ -575,8 +715,8 @@ export default function SiteVisitScreen({ navigation }) {
                 </Pressable>
               </Field>
 
-              <Field label="Visit Time" required error={errors.visitTime}>
-                <Pressable onPress={() => setTimePickerOpen(true)} style={styles.pickerBox}>
+              <Field label="Visit Time" required error={errors.visitTime} icon={<Ionicons name="time-outline" size={14} color={colors.gray400} />}>
+                <Pressable onPress={() => setTimePickerOpen(true)} style={[styles.pickerBox, timePickerOpen && styles.pickerBoxActive]}>
                   {form.visitTime ? (
                     <Text style={styles.pickerValue}>{formatSlot(form.visitTime)}</Text>
                   ) : (
@@ -586,7 +726,7 @@ export default function SiteVisitScreen({ navigation }) {
                 </Pressable>
               </Field>
 
-              <Field label="Number of Persons" required error={errors.persons}>
+              <Field label="Number of Persons" required error={errors.persons} icon={<Ionicons name="people-outline" size={14} color={colors.gray400} />}>
                 <AppTextInput
                   value={form.persons}
                   onChangeText={(v) => setField('persons', v.replace(/[^\d]/g, ''))}
@@ -597,23 +737,117 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-              <Field label="Pickup Location">
-                <AppTextInput
-                  value={form.location}
-                  onChangeText={(v) => setField('location', v)}
-                  placeholder="Search pickup address or area…"
-                />
+              <Field label="Pickup Location & Map Route" icon={<Ionicons name="location-outline" size={14} color={colors.gray400} />}>
+                <View style={styles.locationRow}>
+                  <View style={styles.locationInputWrap}>
+                    <AppTextInput
+                      value={form.location}
+                      onChangeText={handleLocationInputChange}
+                      onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                      placeholder="Search pickup address or area…"
+                    />
+                  </View>
+                  <Pressable
+                    onPress={getLocation}
+                    disabled={locLoading}
+                    style={[styles.smallBtn, styles.gpsBtn, locLoading && styles.disabledBtn]}>
+                    {locLoading ? (
+                      <ActivityIndicator size="small" color={colors.white} />
+                    ) : (
+                      <View style={styles.gpsContent}>
+                        <Ionicons name="navigate-outline" size={16} color={colors.white} />
+                        <Text style={styles.gpsBtnText}>GPS</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                </View>
+
+                {/* Place Autocomplete Suggestions Dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <View style={styles.suggestionsBox}>
+                    {suggestions.map((sug, idx) => (
+                      <Pressable
+                        key={sug.place_id || idx}
+                        onPress={() => handleSelectSuggestion(sug)}
+                        style={styles.suggestionRow}>
+                        <Ionicons name="location-sharp" size={14} color={colors.primary} style={{ marginTop: 2 }} />
+                        <View style={{ flex: 1, marginLeft: 6 }}>
+                          <Text style={styles.sugMain}>{sug.main_text || sug.description}</Text>
+                          {sug.secondary_text ? <Text style={styles.sugSub}>{sug.secondary_text}</Text> : null}
+                        </View>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+
+                {/* Distance & Travel Time Calculation */}
+                {(distLoading || distanceInfo) && (
+                  <View style={styles.distanceBadgeCard}>
+                    <View style={styles.distanceRowLeft}>
+                      <Ionicons name="car-outline" size={18} color={colors.primary} />
+                      <Text style={styles.distanceLabel}>Route to Project Site:</Text>
+                    </View>
+                    {distLoading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : distanceInfo ? (
+                      <View style={styles.distanceBadges}>
+                        <View style={styles.badgeBlue}>
+                          <Text style={styles.badgeBlueText}>
+                            {distanceInfo.distanceText || `${distanceInfo.distanceKm} km`}
+                          </Text>
+                        </View>
+                        <View style={styles.badgePurple}>
+                          <Text style={styles.badgePurpleText}>
+                            ⏱ {distanceInfo.durationText || `${distanceInfo.durationMins} mins`}
+                          </Text>
+                        </View>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
+
+                {/* Google Map View Box */}
+                {form.location ? (
+                  <View style={styles.mapCard}>
+                    {Platform.OS === 'web' ? (
+                      <iframe
+                        title="Pickup Location Map"
+                        width="100%"
+                        height="160"
+                        style={{ border: 0, borderRadius: 12 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8&q=${encodeURIComponent(form.location)}`}
+                      />
+                    ) : (
+                      <View style={styles.mapPlaceholder}>
+                        <Ionicons name="map-outline" size={28} color={colors.primary} />
+                        <Text style={styles.mapPlaceholderText} numberOfLines={1}>
+                          {form.location}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.mapFooter}>
+                      <View style={styles.mapFooterLeft}>
+                        <Ionicons name="location-sharp" size={14} color={colors.red500} />
+                        <Text style={styles.mapFooterAddress} numberOfLines={1}>{form.location}</Text>
+                      </View>
+                      <Pressable
+                        onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.location)}`)}
+                        hitSlop={8}>
+                        <Text style={styles.openMapLink}>Open Maps ↗</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : null}
               </Field>
 
-              <Field label="Notes / Requirements">
-                <TextInput
+              <Field label="Notes / Requirements" icon={<Ionicons name="document-text-outline" size={14} color={colors.gray400} />}>
+                <AppTextArea
                   value={form.notes}
                   onChangeText={(v) => setField('notes', v)}
                   placeholder="Plot size preference, budget, etc."
-                  placeholderTextColor={colors.slate400}
-                  multiline
                   numberOfLines={3}
-                  style={styles.textArea}
                 />
               </Field>
             </View>
@@ -623,6 +857,7 @@ export default function SiteVisitScreen({ navigation }) {
           {step === 3 && (
             <View>
               <View style={styles.bannerPurple}>
+                <Ionicons name="checkmark-circle-outline" size={14} color={colors.purple700} />
                 <Text style={styles.bannerTextPurple}>Review details before submitting</Text>
               </View>
 
@@ -654,23 +889,23 @@ export default function SiteVisitScreen({ navigation }) {
               </View>
             </View>
           )}
-            </ScrollView>
+          </ScrollView>
 
-            {/* Bottom nav buttons */}
-            <View style={styles.footer}>
-              <View style={styles.footerRow}>
-                {step > 1 && <SecondaryButton title="← Back" onPress={() => setStep((s) => s - 1)} style={styles.flexBtn} />}
-                {step < 3 ? (
-                  <PrimaryButton
-                    title="Continue →"
-                    onPress={handleNextStep}
-                    style={[styles.flexBtn, step > 1 ? styles.flexBtnSide : styles.flexBtnFull]}
-                  />
-                ) : (
-                  <PrimaryButton title="Submit Registration" onPress={handleSubmit} loading={submitting} style={styles.flexBtn} />
-                )}
-              </View>
+          {/* Bottom nav buttons - fixed at bottom */}
+          <View style={styles.footer}>
+            <View style={styles.footerRow}>
+              {step > 1 && <SecondaryButton title="← Back" onPress={() => setStep((s) => s - 1)} style={styles.flexBtn} />}
+              {step < 3 ? (
+                <PrimaryButton
+                  title="Continue →"
+                  onPress={handleNextStep}
+                  style={[styles.flexBtn, step > 1 ? styles.flexBtnSide : styles.flexBtnFull]}
+                />
+              ) : (
+                <PrimaryButton title="Submit Registration" onPress={handleSubmit} loading={submitting} style={styles.flexBtn} />
+              )}
             </View>
+          </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -772,51 +1007,72 @@ function ChoiceModal({ visible, title, options, selected, onSelect, onClose }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.white },
+  safe: { flex: 1, backgroundColor: colors.gray50 },
   centerSafe: { flex: 1, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: colors.slate500, fontSize: 13, marginTop: 12 },
-  flex: { flex: 1 },
+  flex: { flex: 1, minHeight: 0 },
   pageShell: {
     flex: 1,
-    backgroundColor: colors.white,
-    paddingHorizontal: 16,
+    minHeight: 0,
+    backgroundColor: colors.gray50,
     paddingTop: 12,
-    paddingBottom: 8,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#1D6FB9',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 6,
+    marginBottom: 16,
+    flexShrink: 0,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
-    minHeight: 52,
+    width: '100%',
+  },
+  headerBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 10,
+  },
+  headerLogoBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerLogo: {
+    width: 26,
+    height: 26,
   },
   headerTextWrap: {
     flex: 1,
-    paddingRight: 10,
+    marginLeft: 10,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.slate900, lineHeight: 28 },
-  headerSub: { fontSize: 12, color: colors.gray400, marginTop: 2 },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: colors.white, lineHeight: 22 },
+  headerSub: { fontSize: 11, color: colors.blue100, marginTop: 2 },
   logoutBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    marginTop: 2,
-    alignSelf: 'flex-start',
-  },
-  logoutText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
-  contentCard: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   stepper: {
     flexDirection: 'row',
@@ -856,43 +1112,65 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
   },
+  pageTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.gray900,
+  },
+  pageSubtitle: {
+    fontSize: 12,
+    color: colors.gray400,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  contentCard: {
+    flex: 1,
+    minHeight: 0,
+  },
+  contentHeader: {
+    paddingHorizontal: 16,
+    flexShrink: 0,
+  },
   scroller: {
     flex: 1,
-    marginBottom: 0,
+    minHeight: 0,
   },
-  scroll: {
-    paddingTop: 6,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
     paddingBottom: 16,
-    flexGrow: 1,
   },
   bannerBlue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.blue50,
-    borderWidth: 1,
-    borderColor: '#D3E4FA',
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
     marginBottom: 12,
   },
-  bannerText: { color: colors.blue700, fontSize: 13, fontWeight: '600' },
+  bannerText: { color: colors.blue700, fontSize: 12, fontWeight: '600' },
   bannerGreen: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.green50,
-    borderWidth: 1,
-    borderColor: '#D8F2DF',
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
     marginBottom: 12,
   },
-  bannerTextGreen: { color: colors.green700, fontSize: 13, fontWeight: '600' },
+  bannerTextGreen: { color: colors.green700, fontSize: 12, fontWeight: '600' },
   bannerPurple: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.purple50,
-    borderWidth: 1,
-    borderColor: '#E9D9FA',
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
     marginBottom: 12,
   },
-  bannerTextPurple: { color: colors.purple700, fontSize: 13, fontWeight: '600' },
-  mobileRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  bannerTextPurple: { color: colors.purple700, fontSize: 12, fontWeight: '600' },
+  mobileRow: { flexDirection: 'row', alignItems: 'center' },
   mobileInputWrap: { flex: 1 },
   smallBtn: {
     marginLeft: 8,
@@ -901,46 +1179,43 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 46,
   },
-  otpBtn: { backgroundColor: colors.blue50 },
+  otpBtn: { backgroundColor: colors.blue100 },
   otpBtnText: { color: colors.blue700, fontSize: 13, fontWeight: '700' },
-  verifyBtn: { backgroundColor: colors.green50 },
+  verifyBtn: { backgroundColor: colors.green100 },
   verifyBtnText: { color: colors.green700, fontSize: 13, fontWeight: '700' },
   disabledBtn: { opacity: 0.6 },
   otpExpiry: { fontSize: 12, color: colors.gray500, marginTop: 4, fontWeight: '600' },
   otpExpiryWarning: { color: colors.red500 },
   verifiedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.green50,
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
   },
   verifiedText: { color: colors.green700, fontSize: 13, fontWeight: '600' },
-  textArea: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.slate300,
-    borderRadius: 6,
-    padding: 12,
-    fontSize: 13,
-    color: colors.slate900,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  inputError: { borderColor: colors.red500 },
   pickerBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.slate300,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    minHeight: 44,
+    borderColor: colors.gray200,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    minHeight: 46,
   },
-  pickerValue: { fontSize: 13, color: colors.slate900, flex: 1 },
-  pickerPlaceholder: { fontSize: 13, color: colors.slate400, flex: 1 },
+  pickerBoxActive: {
+    borderColor: colors.primary,
+    borderWidth: 1.5,
+    backgroundColor: colors.primarySoft,
+  },
+  pickerValue: { fontSize: 14, color: colors.slate900, flex: 1 },
+  pickerPlaceholder: { fontSize: 14, color: colors.slate400, flex: 1 },
   pickerCaret: { fontSize: 16, color: colors.slate400 },
   projectInfoCard: {
     backgroundColor: colors.blue50,
@@ -989,20 +1264,26 @@ const styles = StyleSheet.create({
   noteStrong: { fontWeight: '700' },
   footer: {
     paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: colors.white,
+    paddingBottom: 12,
+    flexShrink: 0,
+    backgroundColor: colors.gray50,
     borderTopWidth: 1,
-    borderTopColor: colors.slate100,
-    marginTop: 8,
+    borderTopColor: colors.slate200,
+    paddingHorizontal: 16,
+    zIndex: 10,
+    elevation: 6,
+    minHeight: 72,
   },
   footerRow: {
     flexDirection: 'row',
     gap: 10,
-    alignItems: 'stretch',
+    alignItems: 'center',
+    width: '100%',
+    minHeight: 48,
   },
-  flexBtn: { flex: 1 },
-  flexBtnSide: { flex: 1 },
-  flexBtnFull: { flex: 0, width: '100%' },
+  flexBtn: { flex: 1, minHeight: 48 },
+  flexBtnSide: { flex: 1, minHeight: 48 },
+  flexBtnFull: { flex: 1, minHeight: 48 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: colors.overlay,
@@ -1058,4 +1339,84 @@ const styles = StyleSheet.create({
     borderColor: colors.slate300,
   },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+  locationRow: { flexDirection: 'row', alignItems: 'center' },
+  locationInputWrap: { flex: 1 },
+  gpsBtn: { backgroundColor: colors.primary, minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  gpsContent: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  gpsBtnText: { color: colors.white, fontSize: 13, fontWeight: '700' },
+  suggestionsBox: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    marginTop: 4,
+    overflow: 'hidden',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    maxHeight: 180,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.slate100,
+  },
+  sugMain: { fontSize: 13, fontWeight: '600', color: colors.slate900 },
+  sugSub: { fontSize: 11, color: colors.slate400, marginTop: 2 },
+  distanceBadgeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.blue50,
+    borderColor: colors.blue100,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 8,
+  },
+  distanceRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  distanceLabel: { fontSize: 12, fontWeight: '600', color: colors.slate800 },
+  distanceBadges: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  badgeBlue: { backgroundColor: colors.primary, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 },
+  badgeBlueText: { color: colors.white, fontSize: 11, fontWeight: '700' },
+  badgePurple: { backgroundColor: colors.purple700, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 },
+  badgePurpleText: { color: colors.white, fontSize: 11, fontWeight: '700' },
+  mapCard: {
+    marginTop: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.slate50,
+  },
+  mapPlaceholder: {
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.blue50,
+    padding: 12,
+  },
+  mapPlaceholderText: {
+    fontSize: 12,
+    color: colors.slate700,
+    fontWeight: '600',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  mapFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.slate100,
+  },
+  mapFooterLeft: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, marginRight: 8 },
+  mapFooterAddress: { fontSize: 11, color: colors.slate700, fontWeight: '500', flex: 1 },
+  openMapLink: { fontSize: 12, fontWeight: '700', color: colors.primary },
 });

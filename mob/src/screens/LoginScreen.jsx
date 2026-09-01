@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, shadows, radius } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
@@ -39,6 +40,22 @@ function Logo() {
         resizeMode="contain"
         accessibilityLabel="Company logo"
       />
+    </View>
+  );
+}
+
+function DotsBackground() {
+  const rows = Array.from({ length: 14 });
+  const cols = Array.from({ length: 9 });
+  return (
+    <View style={styles.dotsOverlay} pointerEvents="none">
+      {rows.map((_, ri) => (
+        <View key={ri} style={styles.dotsRow}>
+          {cols.map((_, ci) => (
+            <View key={ci} style={styles.dot} />
+          ))}
+        </View>
+      ))}
     </View>
   );
 }
@@ -209,6 +226,7 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled">
           <View style={styles.pattern}>
+            <DotsBackground />
             <Logo />
 
             <View style={styles.card}>
@@ -216,7 +234,7 @@ export default function LoginScreen() {
               <View style={styles.header}>
                 {showBack && (
                   <Pressable onPress={goBackToEditId} style={styles.backBtn} hitSlop={8}>
-                    <Text style={styles.backArrow}>‹</Text>
+                    <Ionicons name="arrow-back" size={18} color={colors.slate500} />
                   </Pressable>
                 )}
                 <View style={[styles.headerCenter, showBack && styles.headerCenterWithBack]}>
@@ -247,10 +265,11 @@ export default function LoginScreen() {
               {/* STEP 1 - Enter User ID */}
               {step === 'enterId' && (
                 <View style={styles.form}>
-                  <Field label="User ID" required>
+                  <Field label="User ID" required variant="login">
                     <AppTextInput
                       ref={identifierRef}
                       value={identifier}
+                      variant="login"
                       onChangeText={(t) => {
                         setIdentifier(t.toUpperCase());
                         setErrorText('');
@@ -261,6 +280,9 @@ export default function LoginScreen() {
                       autoCorrect={false}
                       returnKeyType="go"
                       onSubmitEditing={handleCheckUser}
+                      icon={
+                        <Ionicons name="person-outline" size={14} color={colors.slate400} />
+                      }
                     />
                   </Field>
 
@@ -272,11 +294,14 @@ export default function LoginScreen() {
 
                   <PrimaryButton
                     title="Continue"
-                    icon={loading ? undefined : undefined}
+                    icon={
+                      <Ionicons name="send" size={13} color={colors.white} />
+                    }
                     loading={loading}
                     disabled={!identifier.trim()}
                     onPress={handleCheckUser}
                     style={styles.submit}
+                    variant="sm"
                   />
                 </View>
               )}
@@ -284,10 +309,11 @@ export default function LoginScreen() {
               {/* STEP 2A - Admin PIN */}
               {step === 'adminPin' && (
                 <View style={styles.form}>
-                  <Field label="PIN" required>
+                  <Field label="PIN" required variant="login">
                     <AppTextInput
                       ref={pinRef}
                       value={adminPin}
+                      variant="login"
                       onChangeText={setAdminPin}
                       placeholder="Enter Admin PIN"
                       placeholderTextColor={colors.slate400}
@@ -295,15 +321,22 @@ export default function LoginScreen() {
                       maxLength={10}
                       returnKeyType="go"
                       onSubmitEditing={handleAdminLogin}
+                      icon={
+                        <Ionicons name="lock-closed-outline" size={14} color={colors.slate400} />
+                      }
                     />
                   </Field>
 
                   <PrimaryButton
                     title="Verify Admin PIN"
+                    icon={
+                      <Ionicons name="shield-checkmark-outline" size={14} color={colors.white} />
+                    }
                     loading={loading}
                     disabled={!adminPin.trim()}
                     onPress={handleAdminLogin}
                     style={styles.submit}
+                    variant="sm"
                   />
                 </View>
               )}
@@ -327,6 +360,8 @@ export default function LoginScreen() {
                         keyboardType="number-pad"
                         maxLength={1}
                         style={styles.otpInput}
+                        selectionColor={colors.primary}
+                        cursorColor={colors.primary}
                         selectTextOnFocus
                       />
                     ))}
@@ -334,10 +369,14 @@ export default function LoginScreen() {
 
                   <PrimaryButton
                     title="Verify OTP"
+                    icon={
+                      <Ionicons name="shield-checkmark" size={13} color={colors.white} />
+                    }
                     loading={loading}
                     disabled={otp.join('').length !== OTP_LENGTH}
                     onPress={handleVerifyOtp}
                     style={styles.submit}
+                    variant="sm"
                   />
 
                   <View style={styles.resendWrap}>
@@ -376,11 +415,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  dotsOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.05,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 13,
+  },
+  dot: {
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#6D8CB5',
   },
   logoWrap: {
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
   },
   logoImage: {
     width: 220,
@@ -400,6 +460,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.slate100,
     ...shadows.card,
+    zIndex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -408,12 +469,8 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     padding: 6,
+    borderRadius: 6,
     marginRight: 4,
-  },
-  backArrow: {
-    fontSize: 28,
-    color: colors.slate500,
-    lineHeight: 28,
   },
   headerCenter: {
     flex: 1,
@@ -530,8 +587,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   otpInput: {
-    width: 48,
-    height: 52,
+    width: 44,
+    height: 48,
     textAlign: 'center',
     fontSize: 18,
     fontWeight: '600',
