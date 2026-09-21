@@ -1,20 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
-<<<<<<< HEAD
   ActivityIndicator,
   FlatList,
   Image,
   KeyboardAvoidingView,
   Linking,
-=======
-  FlatList,
-  KeyboardAvoidingView,
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   Modal,
   Platform,
   Pressable,
   ScrollView,
-<<<<<<< HEAD
   StatusBar,
   StyleSheet,
   Text,
@@ -23,20 +17,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-=======
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { PrimaryButton, SecondaryButton } from '../components/Buttons';
-<<<<<<< HEAD
 import { Field, AppTextInput, AppTextArea } from '../components/FormField';
 import { RadioGroup } from '../components/RadioGroup';
 import { SuccessModal } from '../components/SuccessModal';
@@ -46,15 +30,6 @@ import { site as siteApi } from '../services/site';
 import { customer as customerApi } from '../services/customer';
 import { siteVisit as siteVisitApi } from '../services/siteVisit';
 import { mapsService } from '../services/maps';
-=======
-import { Field, AppTextInput } from '../components/FormField';
-import { RadioGroup } from '../components/RadioGroup';
-import { SuccessModal } from '../components/SuccessModal';
-import ProjectPicker from '../components/ProjectPicker';
-import { site as siteApi } from '../services/site';
-import { customer as customerApi } from '../services/customer';
-import { siteVisit as siteVisitApi } from '../services/siteVisit';
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 
 const timeSlots = [
   '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
@@ -74,7 +49,6 @@ const occupations = [
   { label: 'Business', value: 'Business' },
 ];
 
-<<<<<<< HEAD
 const ROLE_LABELS = {
   Admin: 'Admin',
   Director: 'Director',
@@ -84,8 +58,6 @@ const ROLE_LABELS = {
   'Sales Manager': 'Sales Manager',
 };
 
-=======
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 const purchaseModes = [
   { label: 'Own Funding', value: 'Own Funding' },
   { label: 'Loan', value: 'Loan' },
@@ -134,20 +106,16 @@ export default function SiteVisitScreen({ navigation }) {
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
 
-<<<<<<< HEAD
   const [locLoading, setLocLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [distLoading, setDistLoading] = useState(false);
   const [distanceInfo, setDistanceInfo] = useState(null);
 
-=======
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   const otpTimerRef = useRef(null);
 
   const dateOptions = useMemo(() => buildDateOptions(30), []);
 
-<<<<<<< HEAD
   const selectedProject = useMemo(() => sites.find((s) => s.id === Number(form.projectId)), [sites, form.projectId]);
   const availablePlots = useMemo(() => (selectedProject?.plots || []).filter((p) => p.status === 'Active'), [selectedProject]);
   const selectedSite = useMemo(() => availablePlots.find((p) => p.id === Number(form.siteId)), [availablePlots, form.siteId]);
@@ -242,8 +210,6 @@ export default function SiteVisitScreen({ navigation }) {
     return () => clearTimeout(timer);
   }, [form.location, selectedProject]);
 
-=======
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   const fetchSites = useCallback(async () => {
     setLoadingSites(true);
     try {
@@ -283,13 +249,7 @@ export default function SiteVisitScreen({ navigation }) {
     }, 1000);
   };
 
-<<<<<<< HEAD
 
-=======
-  const selectedProject = sites.find((s) => s.id === Number(form.projectId));
-  const availablePlots = (selectedProject?.plots || []).filter((p) => p.status === 'Active');
-  const selectedSite = availablePlots.find((p) => p.id === Number(form.siteId));
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 
   const setField = (key, val) => {
     setForm((p) => ({ ...p, [key]: val }));
@@ -488,11 +448,7 @@ export default function SiteVisitScreen({ navigation }) {
       persons: '', purchaseMode: 'Own Funding', location: '', notes: '',
     });
     setOtp(''); setOtpSent(false); setOtpVerified(false);
-<<<<<<< HEAD
     setErrors({});
-=======
-    setErrors({}); setCreatedVisit(null);
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     setStep(1);
   };
 
@@ -503,10 +459,7 @@ export default function SiteVisitScreen({ navigation }) {
   if (loadingSites) {
     return (
       <SafeAreaView style={styles.centerSafe}>
-<<<<<<< HEAD
         <StatusBar barStyle="light-content" backgroundColor="#1D6FB9" />
-=======
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading projects…</Text>
       </SafeAreaView>
@@ -514,7 +467,6 @@ export default function SiteVisitScreen({ navigation }) {
   }
 
   return (
-<<<<<<< HEAD
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#1D6FB9" />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -561,47 +513,6 @@ export default function SiteVisitScreen({ navigation }) {
                   </View>
 
               <Field label="Applicant Name" required error={errors.name} icon={<Ionicons name="person-outline" size={14} color={colors.gray400} />}>
-=======
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Customer Registration</Text>
-          <Text style={styles.headerSub}>Register new customer and schedule site visit</Text>
-          <Pressable onPress={handleLogout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </Pressable>
-        </View>
-
-        {/* Stepper */}
-        <View style={styles.stepper}>
-          {[1, 2, 3].map((s) => (
-            <View key={s} style={styles.stepFlex}>
-              <View style={[styles.stepBar, s <= step ? styles.stepBarActive : null]} />
-              <View style={[styles.stepDot, s <= step ? styles.stepDotActive : styles.stepDotInactive]}>
-                <Text style={s <= step ? styles.stepDotTextActive : styles.stepDotText}>
-                  {s < step ? '✓' : s}
-                </Text>
-              </View>
-              {s < 3 ? <View style={[styles.stepBar, s < step ? styles.stepBarActive : null]} /> : null}
-            </View>
-          ))}
-        </View>
-        <Text style={styles.stepTitle}>
-          {step === 1 ? 'Personal Info & Occupation' : step === 2 ? 'Visit Details' : 'Review & Submit'}
-        </Text>
-
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled">
-          {/* STEP 1 */}
-          {step === 1 && (
-            <View>
-              <View style={styles.bannerBlue}>
-                <Text style={styles.bannerText}>Enter customer details</Text>
-              </View>
-
-              <Field label="Applicant Name" required error={errors.name}>
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                 <AppTextInput
                   value={form.name}
                   onChangeText={(v) => setField('name', v)}
@@ -610,11 +521,7 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-<<<<<<< HEAD
               <Field label="Mobile Number" required error={errors.mobile} icon={<Ionicons name="call-outline" size={14} color={colors.gray400} />}>
-=======
-              <Field label="Mobile Number" required error={errors.mobile}>
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                 <View style={styles.mobileRow}>
                   <View style={styles.mobileInputWrap}>
                     <AppTextInput
@@ -675,10 +582,7 @@ export default function SiteVisitScreen({ navigation }) {
 
               {otpVerified && (
                 <View style={styles.verifiedBanner}>
-<<<<<<< HEAD
                   <Ionicons name="checkmark-circle" size={16} color={colors.green600} />
-=======
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                   <Text style={styles.verifiedText}>Mobile verified ✓</Text>
                 </View>
               )}
@@ -694,7 +598,6 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-<<<<<<< HEAD
               <Field label="Address" required error={errors.address} icon={<Ionicons name="location-outline" size={14} color={colors.gray400} />}>
                 <AppTextArea
                   value={form.address}
@@ -702,17 +605,6 @@ export default function SiteVisitScreen({ navigation }) {
                   placeholder="Full address"
                   error={!!errors.address}
                   numberOfLines={3}
-=======
-              <Field label="Address" required error={errors.address}>
-                <TextInput
-                  value={form.address}
-                  onChangeText={(v) => setField('address', v)}
-                  placeholder="Full address"
-                  placeholderTextColor={colors.slate400}
-                  multiline
-                  numberOfLines={3}
-                  style={[styles.textArea, errors.address ? styles.inputError : null]}
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                 />
               </Field>
 
@@ -727,11 +619,7 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-<<<<<<< HEAD
               <Field label="Occupation" required error={errors.occupation} icon={<Ionicons name="briefcase-outline" size={14} color={colors.gray400} />}>
-=======
-              <Field label="Occupation" required error={errors.occupation}>
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                 <RadioGroup
                   options={occupations}
                   value={form.occupation}
@@ -746,20 +634,12 @@ export default function SiteVisitScreen({ navigation }) {
           {step === 2 && (
             <View>
               <View style={styles.bannerGreen}>
-<<<<<<< HEAD
                 <Ionicons name="business-outline" size={14} color={colors.green700} />
                 <Text style={styles.bannerTextGreen}>Visit & purchase details</Text>
               </View>
 
               <Field label="Select Project" required error={errors.projectId} icon={<Ionicons name="business-outline" size={14} color={colors.gray400} />}>
                 <Pressable onPress={() => setProjectPickerOpen(true)} style={[styles.pickerBox, projectPickerOpen && styles.pickerBoxActive]}>
-=======
-                <Text style={styles.bannerTextGreen}>Visit & purchase details</Text>
-              </View>
-
-              <Field label="Select Project" required error={errors.projectId}>
-                <Pressable onPress={() => setProjectPickerOpen(true)} style={styles.pickerBox}>
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                   {selectedProject ? (
                     <Text style={styles.pickerValue}>{selectedProject.name} — {selectedProject.location}</Text>
                   ) : (
@@ -789,11 +669,7 @@ export default function SiteVisitScreen({ navigation }) {
                 </View>
               )}
 
-<<<<<<< HEAD
               <Field label="Purchase Mode" required error={errors.purchaseMode} icon={<Ionicons name="cash-outline" size={14} color={colors.gray400} />}>
-=======
-              <Field label="Purchase Mode" required error={errors.purchaseMode}>
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                 <RadioGroup
                   options={purchaseModes}
                   value={form.purchaseMode}
@@ -802,13 +678,8 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-<<<<<<< HEAD
               <Field label="Visit Date" required error={errors.visitDate} icon={<Ionicons name="calendar-outline" size={14} color={colors.gray400} />}>
                 <Pressable onPress={() => setDatePickerOpen(true)} style={[styles.pickerBox, datePickerOpen && styles.pickerBoxActive]}>
-=======
-              <Field label="Visit Date" required error={errors.visitDate}>
-                <Pressable onPress={() => setDatePickerOpen(true)} style={styles.pickerBox}>
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                   {form.visitDate ? (
                     <Text style={styles.pickerValue}>
                       {dateOptions.find((d) => d.value === form.visitDate)?.label || form.visitDate}
@@ -820,13 +691,8 @@ export default function SiteVisitScreen({ navigation }) {
                 </Pressable>
               </Field>
 
-<<<<<<< HEAD
               <Field label="Visit Time" required error={errors.visitTime} icon={<Ionicons name="time-outline" size={14} color={colors.gray400} />}>
                 <Pressable onPress={() => setTimePickerOpen(true)} style={[styles.pickerBox, timePickerOpen && styles.pickerBoxActive]}>
-=======
-              <Field label="Visit Time" required error={errors.visitTime}>
-                <Pressable onPress={() => setTimePickerOpen(true)} style={styles.pickerBox}>
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                   {form.visitTime ? (
                     <Text style={styles.pickerValue}>{formatSlot(form.visitTime)}</Text>
                   ) : (
@@ -836,11 +702,7 @@ export default function SiteVisitScreen({ navigation }) {
                 </Pressable>
               </Field>
 
-<<<<<<< HEAD
               <Field label="Number of Persons" required error={errors.persons} icon={<Ionicons name="people-outline" size={14} color={colors.gray400} />}>
-=======
-              <Field label="Number of Persons" required error={errors.persons}>
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                 <AppTextInput
                   value={form.persons}
                   onChangeText={(v) => setField('persons', v.replace(/[^\d]/g, ''))}
@@ -851,7 +713,6 @@ export default function SiteVisitScreen({ navigation }) {
                 />
               </Field>
 
-<<<<<<< HEAD
               <Field label="Pickup Location & Map Route" icon={<Ionicons name="location-outline" size={14} color={colors.gray400} />}>
                 <View style={styles.locationRow}>
                   <View style={styles.locationInputWrap}>
@@ -963,25 +824,6 @@ export default function SiteVisitScreen({ navigation }) {
                   onChangeText={(v) => setField('notes', v)}
                   placeholder="Plot size preference, budget, etc."
                   numberOfLines={3}
-=======
-              <Field label="Pickup Location">
-                <AppTextInput
-                  value={form.location}
-                  onChangeText={(v) => setField('location', v)}
-                  placeholder="Search pickup address or area…"
-                />
-              </Field>
-
-              <Field label="Notes / Requirements">
-                <TextInput
-                  value={form.notes}
-                  onChangeText={(v) => setField('notes', v)}
-                  placeholder="Plot size preference, budget, etc."
-                  placeholderTextColor={colors.slate400}
-                  multiline
-                  numberOfLines={3}
-                  style={styles.textArea}
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                 />
               </Field>
             </View>
@@ -991,10 +833,7 @@ export default function SiteVisitScreen({ navigation }) {
           {step === 3 && (
             <View>
               <View style={styles.bannerPurple}>
-<<<<<<< HEAD
                 <Ionicons name="checkmark-circle-outline" size={14} color={colors.purple700} />
-=======
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
                 <Text style={styles.bannerTextPurple}>Review details before submitting</Text>
               </View>
 
@@ -1026,7 +865,6 @@ export default function SiteVisitScreen({ navigation }) {
               </View>
             </View>
           )}
-<<<<<<< HEAD
           </ScrollView>
 
           {/* Bottom nav buttons - fixed at bottom */}
@@ -1044,23 +882,6 @@ export default function SiteVisitScreen({ navigation }) {
               )}
             </View>
           </View>
-=======
-        </ScrollView>
-
-        {/* Bottom nav buttons */}
-        <View style={styles.footer}>
-          <View style={styles.footerRow}>
-            {step > 1 && <SecondaryButton title="← Back" onPress={() => setStep((s) => s - 1)} style={styles.flexBtn} />}
-            {step < 3 ? (
-              <PrimaryButton
-                title="Continue →"
-                onPress={handleNextStep}
-                style={[styles.flexBtn, step > 1 ? styles.flexBtnSide : styles.flexBtnFull]}
-              />
-            ) : (
-              <PrimaryButton title="Submit Registration" onPress={handleSubmit} loading={submitting} style={styles.flexBtn} />
-            )}
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -1162,7 +983,6 @@ function ChoiceModal({ visible, title, options, selected, onSelect, onClose }) {
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
   safe: { flex: 1, backgroundColor: colors.primary },
   centerSafe: { flex: 1, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: colors.slate500, fontSize: 13, marginTop: 12 },
@@ -1233,31 +1053,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
-=======
-  safe: { flex: 1, backgroundColor: colors.white },
-  centerSafe: { flex: 1, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: colors.slate500, fontSize: 13, marginTop: 12 },
-  flex: { flex: 1 },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    backgroundColor: colors.white,
-  },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: colors.slate900 },
-  headerSub: { fontSize: 12, color: colors.gray400, marginTop: 2 },
-  logoutBtn: {
-    position: 'absolute',
-    right: 16,
-    top: 12,
-    padding: 6,
-  },
-  logoutText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginTop: 16,
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   },
   stepFlex: {
     flex: 1,
@@ -1289,7 +1084,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-<<<<<<< HEAD
     marginTop: 8,
     marginBottom: 4,
   },
@@ -1325,55 +1119,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-=======
-    paddingHorizontal: 16,
-    marginTop: 6,
-  },
-  scroll: { padding: 16, paddingBottom: 32 },
-  bannerBlue: {
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     backgroundColor: colors.blue50,
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
   },
-<<<<<<< HEAD
   bannerText: { color: colors.blue700, fontSize: 12, fontWeight: '600' },
   bannerGreen: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-=======
-  bannerText: { color: colors.blue700, fontSize: 13, fontWeight: '600' },
-  bannerGreen: {
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     backgroundColor: colors.green50,
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
   },
-<<<<<<< HEAD
   bannerTextGreen: { color: colors.green700, fontSize: 12, fontWeight: '600' },
   bannerPurple: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-=======
-  bannerTextGreen: { color: colors.green700, fontSize: 13, fontWeight: '600' },
-  bannerPurple: {
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     backgroundColor: colors.purple50,
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
   },
-<<<<<<< HEAD
   bannerTextPurple: { color: colors.purple700, fontSize: 12, fontWeight: '600' },
   mobileRow: { flexDirection: 'row', alignItems: 'center' },
-=======
-  bannerTextPurple: { color: colors.purple700, fontSize: 13, fontWeight: '600' },
-  mobileRow: { flexDirection: 'row', alignItems: 'flex-start' },
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   mobileInputWrap: { flex: 1 },
   smallBtn: {
     marginLeft: 8,
@@ -1382,57 +1154,31 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-<<<<<<< HEAD
     minHeight: 46,
   },
   otpBtn: { backgroundColor: colors.blue100 },
   otpBtnText: { color: colors.blue700, fontSize: 13, fontWeight: '700' },
   verifyBtn: { backgroundColor: colors.green100 },
-=======
-  },
-  otpBtn: { backgroundColor: colors.blue50 },
-  otpBtnText: { color: colors.blue700, fontSize: 13, fontWeight: '700' },
-  verifyBtn: { backgroundColor: colors.green50 },
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   verifyBtnText: { color: colors.green700, fontSize: 13, fontWeight: '700' },
   disabledBtn: { opacity: 0.6 },
   otpExpiry: { fontSize: 12, color: colors.gray500, marginTop: 4, fontWeight: '600' },
   otpExpiryWarning: { color: colors.red500 },
   verifiedBanner: {
-<<<<<<< HEAD
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-=======
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     backgroundColor: colors.green50,
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
   },
   verifiedText: { color: colors.green700, fontSize: 13, fontWeight: '600' },
-<<<<<<< HEAD
-=======
-  textArea: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.slate300,
-    borderRadius: 6,
-    padding: 12,
-    fontSize: 13,
-    color: colors.slate900,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  inputError: { borderColor: colors.red500 },
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   pickerBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.white,
     borderWidth: 1,
-<<<<<<< HEAD
     borderColor: colors.gray200,
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -1445,15 +1191,6 @@ const styles = StyleSheet.create({
   },
   pickerValue: { fontSize: 14, color: colors.slate900, flex: 1 },
   pickerPlaceholder: { fontSize: 14, color: colors.slate400, flex: 1 },
-=======
-    borderColor: colors.slate300,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    minHeight: 44,
-  },
-  pickerValue: { fontSize: 13, color: colors.slate900, flex: 1 },
-  pickerPlaceholder: { fontSize: 13, color: colors.slate400, flex: 1 },
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   pickerCaret: { fontSize: 16, color: colors.slate400 },
   projectInfoCard: {
     backgroundColor: colors.blue50,
@@ -1501,7 +1238,6 @@ const styles = StyleSheet.create({
   noteText: { fontSize: 12, color: colors.primary },
   noteStrong: { fontWeight: '700' },
   footer: {
-<<<<<<< HEAD
     paddingTop: 12,
     paddingBottom: 12,
     flexShrink: 0,
@@ -1523,18 +1259,6 @@ const styles = StyleSheet.create({
   flexBtn: { flex: 1, minHeight: 48 },
   flexBtnSide: { flex: 1, minHeight: 48 },
   flexBtnFull: { flex: 1, minHeight: 48 },
-=======
-    padding: 16,
-    paddingBottom: 10,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.slate100,
-  },
-  footerRow: { flexDirection: 'row', gap: 10 },
-  flexBtn: { flex: 1 },
-  flexBtnSide: { flex: 1 },
-  flexBtnFull: { flex: 0, width: '100%' },
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   modalBackdrop: {
     flex: 1,
     backgroundColor: colors.overlay,
@@ -1590,7 +1314,6 @@ const styles = StyleSheet.create({
     borderColor: colors.slate300,
   },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
-<<<<<<< HEAD
   locationRow: { flexDirection: 'row', alignItems: 'center' },
   locationInputWrap: { flex: 1 },
   gpsBtn: { backgroundColor: colors.primary, minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
@@ -1671,6 +1394,4 @@ const styles = StyleSheet.create({
   mapFooterLeft: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, marginRight: 8 },
   mapFooterAddress: { fontSize: 11, color: colors.slate700, fontWeight: '500', flex: 1 },
   openMapLink: { fontSize: 12, fontWeight: '700', color: colors.primary },
-=======
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 });

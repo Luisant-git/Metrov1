@@ -3,7 +3,7 @@
 // - Parses NestJS error shapes (object message, array of validation messages, etc.)
 // - Dispatches an event when the backend returns 401 so the app can logout.
 
-import { API_BASE_URL } from '../config/api';
+import resolveApiBaseUrl from '../config/api';
 import { storage } from '../utils/storage';
 
 export const UNAUTHORIZED_EVENT = 'app:unauthorized';
@@ -27,7 +27,9 @@ async function getToken() {
 }
 
 export async function request(path, { method = 'GET', body, params, auth = true } = {}) {
-  const url = new URL(`${API_BASE_URL}${path}`);
+  const base = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : undefined;
+  const resolvedBase = base || (await resolveApiBaseUrl());
+  const url = new URL(`${resolvedBase}${path}`);
   if (params) {
     Object.keys(params).forEach((key) => {
       if (params[key] !== undefined && params[key] !== null && params[key] !== '') {

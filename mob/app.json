@@ -1,12 +1,15 @@
 {
-<<<<<<< HEAD
-  "name": "MetroV1",
   "expo": {
     "name": "MetroV1",
     "slug": "metrov1",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "userInterfaceStyle": "light",
     "android": {
       "package": "com.companyname.metrov1"
@@ -15,10 +18,9 @@
       "eas": {
         "projectId": "b7ff6db1-0ff1-4ef8-aeea-ff1285761d24"
       }
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
-=======
-  "name": "mob",
-  "displayName": "mob"
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 }

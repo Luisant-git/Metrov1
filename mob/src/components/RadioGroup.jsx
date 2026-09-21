@@ -39,13 +39,9 @@ const styles = StyleSheet.create({
   },
   option: {
     flexGrow: 1,
-<<<<<<< HEAD
     flexBasis: '29%',
     minHeight: 46,
     paddingVertical: 12,
-=======
-    paddingVertical: 13,
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
     paddingHorizontal: 8,
     margin: 4,
     borderRadius: 12,
@@ -54,7 +50,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   optionSelected: {
-<<<<<<< HEAD
     borderColor: colors.blue600,
     backgroundColor: colors.blue50,
     shadowColor: colors.primary,
@@ -62,10 +57,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 8,
     elevation: 3,
-=======
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   },
   optionUnselected: {
     borderColor: colors.gray200,
@@ -74,16 +65,10 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 13,
     fontWeight: '600',
-<<<<<<< HEAD
     textAlign: 'center',
   },
   optionTextSelected: {
     color: colors.blue700,
-=======
-  },
-  optionTextSelected: {
-    color: colors.primaryDark,
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
   },
   optionTextUnselected: {
     color: colors.slate600,

@@ -4,34 +4,67 @@
 // do NOT modify the existing frontend/backend environment config.
 //
 // IMPORTANT:
-<<<<<<< HEAD
 // - On a physical Android device, "localhost" refers to the phone itself. Use your
 //   workstation LAN IP (for example http://192.168.1.10:3000).
 // - On an Android emulator, use http://10.0.2.2:3000 to reach the host machine.
 // - In Expo web mode, use http://localhost:3000.
-=======
-// - On a physical Android device, "localhost" refers to the phone itself. Point
-//   API_BASE_URL to your workstation's LAN IP (e.g. http://192.168.1.10:3000).
-// - On an Android emulator, use http://10.0.2.2:3000 to reach the host machine's
-//   localhost where the existing backend is running.
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
 //
 // The backend is a NestJS app listening on PORT (default 3000). The auth / site-visit /
 // customer / projects routes are served under the same origin (no /api prefix).
 
-<<<<<<< HEAD
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 const isWeb = Platform.OS === 'web';
 const isAndroid = Platform.OS === 'android';
 
-export const API_BASE_URL = isWeb
-  ? 'http://localhost:3000'
-  : isAndroid
-    ? 'http://10.0.2.2:3000'
-    : 'http://localhost:3000';
-=======
-export const API_BASE_URL = 'http://10.0.2.2:3000';
->>>>>>> 49ebe3b1971152cb44403a9aa630fcfbda9cd121
+// Candidate hosts to try at runtime (keeps the existing default IP as first choice).
+const CANDIDATE_BASES = [
+  // Allow overriding via `expo.extra.API_BASE_URL` in app.json / EAS config.
+  Constants?.manifest?.extra?.API_BASE_URL,
+  // Common emulator/host shortcuts and fallbacks.
+  isWeb ? 'http://localhost:3000' : null,
+  isAndroid ? 'http://10.183.43.165:3000' : null,
+  isAndroid ? 'http://10.0.2.2:3000' : null, // Android emulator (default)
+  isAndroid ? 'http://10.0.3.2:3000' : null, // Genymotion
+  'http://localhost:3000',
+].filter(Boolean);
 
-export default API_BASE_URL;
+async function probe(url, timeout = 1200) {
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(id);
+    return res && (res.ok || res.status === 404 || res.status === 200);
+  } catch (e) {
+    return false;
+  }
+}
+
+// Resolve the first reachable base URL from candidates. This runs at runtime
+// and avoids hard-failing when a device/emulator requires a different host.
+export async function resolveApiBaseUrl() {
+  // If running on web, prefer localhost immediately.
+  if (isWeb) return 'http://localhost:3000';
+
+  for (const base of CANDIDATE_BASES) {
+    try {
+      // probe a common health endpoint or root
+      const health = `${base.replace(/\/$/, '')}/health`;
+      const ok = await probe(health).catch(() => false);
+      if (ok) return base.replace(/\/$/, '');
+
+      // fallback to root probe
+      const rootOk = await probe(base).catch(() => false);
+      if (rootOk) return base.replace(/\/$/, '');
+    } catch (e) {
+      // continue
+    }
+  }
+
+  // Last resort: return first candidate even if unreachable so errors are visible.
+  return CANDIDATE_BASES[0] || 'http://localhost:3000';
+}
+
+export default resolveApiBaseUrl;
