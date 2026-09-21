@@ -652,7 +652,7 @@ export default function SiteVisitScreen({ navigation }) {
               {selectedProject && (
                 <View style={styles.projectInfoCard}>
                   <Image 
-                    source={{ uri: selectedProject.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=200&q=80' }} 
+                    source={{ uri: selectedProject.images?.[0] || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=200&q=80' }} 
                     style={styles.projectInfoImgPlaceholder} 
                   />
                   <View style={{flex: 1}}>
