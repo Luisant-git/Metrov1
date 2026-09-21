@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
+
+import { Ionicons } from '@expo/vector-icons';
 
 // Lightweight toast notification mirroring react-toastify behavior in the PWA.
 // Shows the most recent message; newer toasts replace older ones.
@@ -36,16 +38,23 @@ export function ToastProvider({ children }) {
 }
 
 function ToastView({ toast }) {
-  const bg =
-    toast.type === 'error'
-      ? colors.red600
-      : toast.type === 'info'
-      ? colors.slate700
-      : colors.green600;
+  let iconName = 'information-circle';
+  let color = colors.slate700;
+
+  if (toast.type === 'error') {
+    iconName = 'close-circle';
+    color = colors.red600;
+  } else if (toast.type === 'success') {
+    iconName = 'checkmark-circle';
+    color = colors.green600;
+  }
 
   return (
-    <Animated.View style={[styles.toast, { backgroundColor: bg }]}>
-      <Text style={styles.text}>{toast.message}</Text>
+    <Animated.View style={[styles.toast, { borderLeftColor: color }]}>
+      <Ionicons name={iconName} size={22} color={color} style={styles.icon} />
+      <View style={styles.textWrap}>
+        <Text style={styles.text}>{toast.message}</Text>
+      </View>
     </Animated.View>
   );
 }
@@ -53,23 +62,33 @@ function ToastView({ toast }) {
 const styles = StyleSheet.create({
   toast: {
     position: 'absolute',
-    top: 46,
-    left: 16,
-    right: 16,
-    paddingVertical: 12,
+    top: 50,
+    left: 20,
+    right: 20,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 8,
+    backgroundColor: colors.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 8,
     zIndex: 1000,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderLeftWidth: 4,
+  },
+  icon: {
+    marginRight: 12,
+  },
+  textWrap: {
+    flex: 1,
   },
   text: {
-    color: colors.white,
-    fontSize: 13,
+    color: colors.slate800,
+    fontSize: 14,
     fontWeight: '600',
-    textAlign: 'center',
+    lineHeight: 20,
   },
 });

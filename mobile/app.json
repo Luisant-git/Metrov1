@@ -27,6 +27,12 @@
     "plugins": [
       "expo-font",
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow MetroV1 to use your location for site visits."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

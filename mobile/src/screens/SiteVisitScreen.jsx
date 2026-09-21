@@ -24,7 +24,9 @@ import { PrimaryButton, SecondaryButton } from '../components/Buttons';
 import { Field, AppTextInput, AppTextArea } from '../components/FormField';
 import { RadioGroup } from '../components/RadioGroup';
 import { SuccessModal } from '../components/SuccessModal';
+import * as Location from 'expo-location';
 import ProjectPicker from '../components/ProjectPicker';
+import SitePicker from '../components/SitePicker';
 import TopBar from '../components/TopBar';
 import { site as siteApi } from '../services/site';
 import { customer as customerApi } from '../services/customer';
@@ -102,6 +104,7 @@ export default function SiteVisitScreen({ navigation }) {
   const [timeLeft, setTimeLeft] = useState(0);
 
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+  const [sitePickerOpen, setSitePickerOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
@@ -152,37 +155,34 @@ export default function SiteVisitScreen({ navigation }) {
     }
   };
 
-  const getLocation = () => {
+  const getLocation = async () => {
     setLocLoading(true);
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const latlngStr = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
-          try {
-            const geoRes = await mapsService.geocode(null, latlngStr);
-            if (geoRes?.formatted_address) {
-              setField('location', geoRes.formatted_address);
-              toast.success('GPS location captured!');
-            } else {
-              setField('location', latlngStr);
-              toast.success('GPS coordinates captured!');
-            }
-          } catch (e) {
-            setField('location', latlngStr);
-            toast.success('GPS coordinates captured!');
-          } finally {
-            setLocLoading(false);
-          }
-        },
-        (err) => {
-          setLocLoading(false);
-          toast.error('Unable to fetch GPS location. Please enter address manually.');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-      );
-    } else {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        toast.error('Permission to access location was denied');
+        setLocLoading(false);
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({});
+      const latlngStr = `${location.coords.latitude.toFixed(6)},${location.coords.longitude.toFixed(6)}`;
+      try {
+        const geoRes = await mapsService.geocode(null, latlngStr);
+        if (geoRes?.formatted_address) {
+          setField('location', geoRes.formatted_address);
+          toast.success('GPS location captured!');
+        } else {
+          setField('location', latlngStr);
+          toast.success('GPS coordinates captured!');
+        }
+      } catch (e) {
+        setField('location', latlngStr);
+        toast.success('GPS coordinates captured!');
+      }
+    } catch (err) {
+      toast.error('Unable to fetch GPS location. Please enter address manually.');
+    } finally {
       setLocLoading(false);
-      toast.error('GPS is not supported on this device. Enter address manually.');
     }
   };
 
@@ -638,7 +638,7 @@ export default function SiteVisitScreen({ navigation }) {
                 <Text style={styles.bannerTextGreen}>Visit & purchase details</Text>
               </View>
 
-              <Field label="Select Project" required error={errors.projectId} icon={<Ionicons name="business-outline" size={14} color={colors.gray400} />}>
+              <Field label="Select Project" required error={errors.projectId}>
                 <Pressable onPress={() => setProjectPickerOpen(true)} style={[styles.pickerBox, projectPickerOpen && styles.pickerBoxActive]}>
                   {selectedProject ? (
                     <Text style={styles.pickerValue}>{selectedProject.name} — {selectedProject.location}</Text>
@@ -651,10 +651,29 @@ export default function SiteVisitScreen({ navigation }) {
 
               {selectedProject && (
                 <View style={styles.projectInfoCard}>
-                  <Text style={styles.projectInfoName}>{selectedProject.name}</Text>
-                  <Text style={styles.projectInfoLoc}>{selectedProject.location}</Text>
-                  <Text style={styles.projectInfoAvail}>{availablePlots.length} available</Text>
+                  <Image 
+                    source={{ uri: selectedProject.image || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=200&q=80' }} 
+                    style={styles.projectInfoImgPlaceholder} 
+                  />
+                  <View style={{flex: 1}}>
+                    <Text style={styles.projectInfoName}>{selectedProject.name}</Text>
+                    <Text style={styles.projectInfoLoc}>{selectedProject.location}</Text>
+                    <Text style={styles.projectInfoAvail}>{availablePlots.length} available · ₹{selectedProject.basePrice || 0}/sqft</Text>
+                  </View>
                 </View>
+              )}
+
+              {selectedProject && (
+                <Field label="Select Site / Plot (optional)" error={errors.siteId}>
+                  <Pressable onPress={() => setSitePickerOpen(true)} style={[styles.pickerBox, sitePickerOpen && styles.pickerBoxActive]}>
+                    {selectedSite ? (
+                      <Text style={styles.pickerValue}>Site {selectedSite.siteNo}</Text>
+                    ) : (
+                      <Text style={styles.pickerPlaceholder}>Choose site...</Text>
+                    )}
+                    <Text style={styles.pickerCaret}>⌄</Text>
+                  </Pressable>
+                </Field>
               )}
 
               {selectedSite && (
@@ -891,14 +910,26 @@ export default function SiteVisitScreen({ navigation }) {
         visible={projectPickerOpen}
         projects={sites}
         selectedProjectId={Number(form.projectId)}
-        selectedSiteId={Number(form.siteId)}
         onSelectProject={(p) => {
           setField('projectId', String(p.id));
-          setForm((prev) => ({ ...prev, siteId: '' }));
+          setField('siteId', '');
+          setProjectPickerOpen(false);
         }}
-        onSelectSite={(siteId) => setField('siteId', siteId ? String(siteId) : '')}
         onClose={() => setProjectPickerOpen(false)}
       />
+
+      {selectedProject && (
+        <SitePicker
+          visible={sitePickerOpen}
+          plots={availablePlots}
+          selectedSiteId={Number(form.siteId)}
+          onSelectSite={(siteId) => {
+            setField('siteId', String(siteId));
+            setSitePickerOpen(false);
+          }}
+          onClose={() => setSitePickerOpen(false)}
+        />
+      )}
 
       <ChoiceModal
         visible={datePickerOpen}
@@ -1193,14 +1224,27 @@ const styles = StyleSheet.create({
   pickerPlaceholder: { fontSize: 14, color: colors.slate400, flex: 1 },
   pickerCaret: { fontSize: 16, color: colors.slate400 },
   projectInfoCard: {
-    backgroundColor: colors.blue50,
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: colors.slate50,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.slate100,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  projectInfoName: { fontSize: 14, fontWeight: '700', color: colors.slate800 },
-  projectInfoLoc: { fontSize: 12, color: colors.gray400, marginTop: 2 },
-  projectInfoAvail: { fontSize: 12, color: colors.primary, fontWeight: '700', marginTop: 4 },
+  projectInfoImgPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  projectInfoName: { fontSize: 15, fontWeight: '700', color: colors.slate800 },
+  projectInfoLoc: { fontSize: 13, color: colors.slate500, marginTop: 4 },
+  projectInfoAvail: { fontSize: 13, color: colors.primary, marginTop: 4 },
   siteInfoCard: {
     backgroundColor: colors.green50,
     borderRadius: 16,

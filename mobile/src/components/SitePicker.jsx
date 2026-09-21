@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import { colors } from '../theme';
 
-export default function ProjectPicker({
+export default function SitePicker({
   visible,
-  projects = [],
-  selectedProjectId,
-  onSelectProject,
+  plots = [],
+  selectedSiteId,
+  onSelectSite,
   onClose,
 }) {
   return (
@@ -22,32 +22,35 @@ export default function ProjectPicker({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>Select Project</Text>
+            <Text style={styles.title}>Select Site / Plot</Text>
             <Pressable onPress={onClose} hitSlop={10}>
               <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>
 
           <FlatList
-            data={projects}
+            data={plots}
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => {
-              const isSelectedProject = Number(selectedProjectId) === Number(item.id);
-              const projectPlots = item.plots || [];
+              const isSelectedSite = Number(selectedSiteId) === Number(item.id);
 
               return (
-                <View style={styles.projectCard}>
-                  <Pressable
-                    onPress={() => onSelectProject(item)}
-                    style={[styles.projectRow, isSelectedProject && styles.projectRowSelected]}>
-                    <View style={styles.projectTextWrap}>
-                      <Text style={styles.projectName}>{item.name}</Text>
-                      <Text style={styles.projectMeta}>{item.location}</Text>
-                    </View>
-                    <Text style={styles.count}>{projectPlots.length}</Text>
-                  </Pressable>
-                </View>
+                <Pressable
+                  onPress={() => onSelectSite(item.id)}
+                  style={[styles.siteRow, isSelectedSite && styles.siteRowSelected]}>
+                  <View style={styles.siteTextWrap}>
+                    <Text style={[styles.siteName, isSelectedSite && styles.siteNameSelected]}>
+                      Site {item.siteNo || item.id}
+                    </Text>
+                    <Text style={styles.siteMeta}>
+                      {item.facing} · {Number(item.totalSqft).toLocaleString('en-IN')} sqft
+                    </Text>
+                  </View>
+                  <Text style={styles.price}>
+                    ₹{Number(item.pricePerSqft).toLocaleString('en-IN')}/sqft
+                  </Text>
+                </Pressable>
               );
             }}
           />
@@ -92,70 +95,41 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
   },
-  projectCard: {
-    marginBottom: 10,
-  },
-  projectRow: {
+  siteRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: colors.slate200,
     borderRadius: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: colors.white,
+    marginBottom: 10,
   },
-  projectRowSelected: {
+  siteRowSelected: {
     borderColor: colors.primary,
     backgroundColor: colors.primarySoft,
   },
-  projectTextWrap: {
+  siteTextWrap: {
     flex: 1,
   },
-  projectName: {
-    fontSize: 14,
+  siteName: {
+    fontSize: 15,
     fontWeight: '700',
     color: colors.slate800,
   },
-  projectMeta: {
-    fontSize: 12,
-    color: colors.gray400,
-    marginTop: 2,
-  },
-  count: {
-    fontSize: 11,
-    color: colors.primary,
-    fontWeight: '700',
-    backgroundColor: colors.blue50,
-    borderRadius: 10,
-    overflow: 'hidden',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  plotWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 8,
-    gap: 8,
-  },
-  plotItem: {
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  plotItemSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  plotText: {
-    fontSize: 12,
-    color: colors.slate700,
-    fontWeight: '600',
-  },
-  plotTextSelected: {
+  siteNameSelected: {
     color: colors.primaryDark,
+  },
+  siteMeta: {
+    fontSize: 13,
+    color: colors.slate500,
+    marginTop: 4,
+  },
+  price: {
+    fontSize: 13,
+    color: colors.green700,
+    fontWeight: '700',
   },
 });
