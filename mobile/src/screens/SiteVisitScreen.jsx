@@ -158,14 +158,35 @@ export default function SiteVisitScreen({ navigation }) {
   const getLocation = async () => {
     setLocLoading(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        toast.error('Permission to access location was denied');
-        setLocLoading(false);
-        return;
+      let coords = null;
+
+      // Web fallback: sometimes expo-location permissions fail silently on browsers
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
+        try {
+          coords = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+              (err) => reject(err),
+              { enableHighAccuracy: true, timeout: 10000 }
+            );
+          });
+        } catch (e) {
+          // Ignore and fallback to expo-location
+        }
       }
-      const location = await Location.getCurrentPositionAsync({});
-      const latlngStr = `${location.coords.latitude.toFixed(6)},${location.coords.longitude.toFixed(6)}`;
+
+      if (!coords) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          toast.error('Location permission denied. Please enable it in browser/device settings.');
+          setLocLoading(false);
+          return;
+        }
+        const location = await Location.getCurrentPositionAsync({});
+        coords = { latitude: location.coords.latitude, longitude: location.coords.longitude };
+      }
+
+      const latlngStr = `${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`;
       try {
         const geoRes = await mapsService.geocode(null, latlngStr);
         if (geoRes?.formatted_address) {
