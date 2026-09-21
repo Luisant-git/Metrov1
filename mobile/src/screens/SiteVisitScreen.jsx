@@ -337,7 +337,7 @@ export default function SiteVisitScreen({ navigation }) {
     } else if (form.mobile.length !== 10) {
       e.mobile = 'Enter valid 10-digit mobile number';
     }
-    if (!form.email || (form.email && !/^\S+@\S+\.\S+$/.test(form.email))) {
+    if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) {
       e.email = 'Enter valid email address';
     }
     if (!form.address) e.address = 'Address is required';

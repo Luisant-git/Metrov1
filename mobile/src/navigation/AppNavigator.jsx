@@ -58,9 +58,12 @@ function PlaceholderScreen() {
   );
 }
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 function CustomTabBar({ state, descriptors, navigation, navItems }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.tabBarContainer}>
+    <View style={[styles.tabBarContainer, { paddingBottom: insets.bottom, height: 72 + insets.bottom }]}>
       {state.routes.map((route, index) => {
         // Only render tabs that exist in the navItems array for this role
         const routeName = route.name;
