@@ -149,7 +149,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer documentTitle={{ formatter: () => 'Metrohomes - EMS' }}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
       <Stack.Navigator
         screenOptions={{

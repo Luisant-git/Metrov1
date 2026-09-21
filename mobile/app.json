@@ -14,6 +14,11 @@
     "android": {
       "package": "com.companyname.metrov1"
     },
+    "web": {
+      "favicon": "./assets/logo.png",
+      "name": "Metrohomes - EMS",
+      "shortName": "Metrohomes"
+    },
     "extra": {
       "eas": {
         "projectId": "b7ff6db1-0ff1-4ef8-aeea-ff1285761d24"
