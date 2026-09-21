@@ -24,22 +24,25 @@ const CANDIDATE_BASES = [
   Constants?.manifest?.extra?.API_BASE_URL,
   // Common emulator/host shortcuts and fallbacks.
   isWeb ? 'http://localhost:3000' : null,
-  isAndroid ? 'http://10.183.43.165:3000' : null,
+  isAndroid ? 'http://10.228.93.167:3000' : null,
   isAndroid ? 'http://10.0.2.2:3000' : null, // Android emulator (default)
   isAndroid ? 'http://10.0.3.2:3000' : null, // Genymotion
   'http://localhost:3000',
 ].filter(Boolean);
 
 async function probe(url, timeout = 1200) {
-  try {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
-    clearTimeout(id);
-    return res && (res.ok || res.status === 404 || res.status === 200);
-  } catch (e) {
-    return false;
-  }
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), timeout);
+    fetch(url, { method: 'GET', headers: { Accept: 'application/json' } })
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res && (res.ok || res.status === 404 || res.status === 200 || res.status === 401));
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        resolve(false);
+      });
+  });
 }
 
 // Resolve the first reachable base URL from candidates. This runs at runtime
