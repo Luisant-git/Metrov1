@@ -27,8 +27,7 @@ export async function getToken() {
 }
 
 export async function request(path, { method = 'GET', body, params, auth = true } = {}) {
-  const base = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : undefined;
-  const resolvedBase = base || (await resolveApiBaseUrl());
+  const resolvedBase = await resolveApiBaseUrl();
   const url = new URL(`${resolvedBase}${path}`);
   if (params) {
     Object.keys(params).forEach((key) => {
