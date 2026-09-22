@@ -222,18 +222,24 @@ export default function SitesScreen({ navigation }) {
                     <View style={styles.table}>
                       <View style={styles.tableHeader}>
                         <Text style={[styles.tableCell, styles.tableHeadText, {width: 40}]}>S.No</Text>
-                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 60}]}>Site</Text>
-                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 80}]}>Facing</Text>
-                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 70}]}>Sqft</Text>
-                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 80}]}>Price/sqft</Text>
+                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 50}]}>Site</Text>
+                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 70}]}>Facing</Text>
+                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 60}]}>E-W</Text>
+                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 60}]}>N-S</Text>
+                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 75}]}>Total Sqft</Text>
+                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 75}]}>Price/sqft</Text>
+                        <Text style={[styles.tableCell, styles.tableHeadText, {width: 70}]}>Status</Text>
                       </View>
                       {activePlots.map((pl, idx) => (
                         <View key={pl.id} style={styles.tableRow}>
                           <Text style={[styles.tableCell, {width: 40}]}>{idx + 1}</Text>
-                          <Text style={[styles.tableCell, styles.tableCellBold, {width: 60}]}>{pl.siteNo}</Text>
-                          <Text style={[styles.tableCell, {width: 80}]}>{pl.facing}</Text>
-                          <Text style={[styles.tableCell, styles.tableCellBold, {width: 70}]}>{Number(pl.totalSqft).toLocaleString("en-IN")}</Text>
-                          <Text style={[styles.tableCell, {width: 80}]}>₹{Number(pl.pricePerSqft).toLocaleString("en-IN")}</Text>
+                          <Text style={[styles.tableCell, styles.tableCellBold, {width: 50}]}>{pl.siteNo}</Text>
+                          <Text style={[styles.tableCell, {width: 70}]}>{pl.facing || "—"}</Text>
+                          <Text style={[styles.tableCell, {width: 60}]}>{pl.eastWest ? `${pl.eastWest} ft` : "—"}</Text>
+                          <Text style={[styles.tableCell, {width: 60}]}>{pl.northSouth ? `${pl.northSouth} ft` : "—"}</Text>
+                          <Text style={[styles.tableCell, styles.tableCellBold, {width: 75}]}>{Number(pl.totalSqft).toLocaleString("en-IN")}</Text>
+                          <Text style={[styles.tableCell, {width: 75}]}>₹{Number(pl.pricePerSqft).toLocaleString("en-IN")}</Text>
+                          <Text style={[styles.tableCell, {width: 70, color: '#15803d', fontWeight: 'bold'}]}>{pl.status}</Text>
                         </View>
                       ))}
                     </View>
@@ -248,6 +254,28 @@ export default function SitesScreen({ navigation }) {
                     <Text style={styles.sectionTitle}>Description</Text>
                   </View>
                   <Text style={styles.descriptionText}>{selectedSite.description}</Text>
+                </View>
+              )}
+
+              {selectedSite.documents && selectedSite.documents.length > 0 && (
+                <View style={styles.sectionContainer}>
+                  <View style={styles.sectionHeader}>
+                    <FileText size={16} color={colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={styles.sectionTitle}>Brochures & Documents</Text>
+                  </View>
+                  {selectedSite.documents.map((doc, idx) => (
+                    <TouchableOpacity key={idx} style={styles.docRow} onPress={() => {
+                      import('react-native').then(rn => rn.Linking.openURL(doc.url || doc));
+                    }}>
+                      <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+                        <View style={styles.docIconBox}>
+                          <FileText size={20} color={colors.primary} />
+                        </View>
+                        <Text style={styles.docName} numberOfLines={1}>{doc.name || `Document ${idx+1}`}</Text>
+                      </View>
+                      <Download size={18} color={colors.slate400} />
+                    </TouchableOpacity>
+                  ))}
                 </View>
               )}
             </ScrollView>
@@ -370,6 +398,10 @@ const styles = StyleSheet.create({
   tableCell: { fontSize: 12, color: colors.slate600 },
   tableHeadText: { fontWeight: '700', color: colors.slate500 },
   tableCellBold: { fontWeight: '600', color: colors.slate800 },
+  
+  docRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: colors.slate50, borderRadius: 12, marginBottom: 8 },
+  docIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  docName: { fontSize: 13, fontWeight: '600', color: colors.slate800 },
 
   // Full Screen Gallery Styles
   galleryOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center' },
