@@ -14,17 +14,25 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/context/AuthContext';
 import { ToastProvider } from './src/components/Toast';
 import AppNavigator from './src/navigation/AppNavigator';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Force hide after a few seconds in case of fatal error preventing hideAsync in AppNavigator
+setTimeout(() => {
+  SplashScreen.hideAsync().catch(() => {});
+}, 3500);
 
 function App() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <AppNavigator />
-        </ToastProvider>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <ToastProvider>
+            <AppNavigator />
+          </ToastProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }
