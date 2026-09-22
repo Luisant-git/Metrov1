@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { site as siteApi } from '../services/site';
 import TopBar from '../components/TopBar';
+import { resolveImageUrl } from '../config/api';
 
 export default function SitesScreen({ navigation }) {
   const toast = useToast();
@@ -71,7 +72,7 @@ export default function SitesScreen({ navigation }) {
 
   const renderSiteCard = ({ item }) => {
     const defaultImage = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&q=80';
-    const imageUri = item.images?.[0] || defaultImage;
+    const imageUri = resolveImageUrl(item.images?.[0]) || defaultImage;
 
     return (
       <TouchableOpacity 
@@ -123,7 +124,7 @@ export default function SitesScreen({ navigation }) {
   const renderGalleryModal = () => {
     if (!galleryOpen || !selectedSite) return null;
     const defaultImage = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&q=80';
-    const imageUri = selectedSite.images?.[imgIdx] || defaultImage;
+    const imageUri = resolveImageUrl(selectedSite.images?.[imgIdx]) || defaultImage;
     const totalImgs = selectedSite.images?.length || 1;
 
     return (
@@ -158,7 +159,7 @@ export default function SitesScreen({ navigation }) {
     if (!selectedSite || galleryOpen) return null;
     const defaultImage = 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&q=80';
     // Inside detail modal we might want to just show the first image or let them slide through
-    const imageUri = selectedSite.images?.[imgIdx] || defaultImage;
+    const imageUri = resolveImageUrl(selectedSite.images?.[imgIdx]) || defaultImage;
     const activePlots = selectedSite.plots?.filter(p => p.status === 'Active') || [];
     const totalImgs = selectedSite.images?.length || 1;
 
@@ -195,7 +196,7 @@ export default function SitesScreen({ navigation }) {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailsWrap}>
                   {selectedSite.images.map((img, i) => (
                     <TouchableOpacity key={i} onPress={() => setImgIdx(i)} style={[styles.thumbnailBtn, i === imgIdx && styles.thumbnailBtnActive]}>
-                      <Image source={{ uri: img }} style={styles.thumbnailImg} />
+                      <Image source={{ uri: resolveImageUrl(img) }} style={styles.thumbnailImg} />
                     </TouchableOpacity>
                   ))}
                 </ScrollView>

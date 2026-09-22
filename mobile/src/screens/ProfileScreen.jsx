@@ -10,6 +10,7 @@ import { userApi } from '../services/user';
 import { uploadApi } from '../services/upload';
 import { storage } from '../utils/storage';
 import TopBar from '../components/TopBar';
+import { resolveImageUrl } from '../config/api';
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
@@ -36,7 +37,7 @@ export default function ProfileScreen({ navigation }) {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsEditing: false,
         aspect: [1, 1],
         quality: 0.8,
       });
@@ -129,7 +130,7 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.headerArea}>
           <View style={styles.avatarWrap}>
             {form.avatar ? (
-              <Image source={{ uri: form.avatar }} style={styles.avatarImg} />
+              <Image source={{ uri: resolveImageUrl(form.avatar) }} style={styles.avatarImg} />
             ) : (
               <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
             )}
