@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -144,6 +145,12 @@ function MainTabs() {
 
 export default function AppNavigator() {
   const { isAuthenticated, initializing } = useAuth();
+
+  useEffect(() => {
+    if (!initializing) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [initializing]);
 
   if (initializing) {
     return <View style={styles.splash} />;
