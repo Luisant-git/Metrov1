@@ -1,33 +1,53 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, Modal, ActivityIndicator, Linking } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Eye, UserX, X, MapPin } from 'lucide-react-native';
+import { Search, X, MapPin, Clock, User, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { customer as customerApi } from '../services/customer';
+import { userApi } from '../services/user';
 import TopBar from '../components/TopBar';
+
+const ITEMS_PER_PAGE = 10;
+
+// Helper to filter downline users
+function getDownline(usersList, parentId) {
+  const ids = [];
+  const queue = usersList.filter((u) => u.parentUserId === parentId).map((u) => u.id);
+  while (queue.length > 0) {
+    const id = queue.shift();
+    ids.push(id);
+    const children = usersList.filter((u) => u.parentUserId === id).map((u) => u.id);
+    queue.push(...children);
+  }
+  return ids;
+}
 
 export default function CustomersScreen({ navigation }) {
   const { user } = useAuth();
   const toast = useToast();
   
   const [customers, setCustomers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
-  
-  const [viewCustomer, setViewCustomer] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchCustomers = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await customerApi.getAll();
-      const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+      const [custRes, userRes] = await Promise.all([
+        customerApi.getAll(),
+        userApi.getAll()
+      ]);
+      const list = Array.isArray(custRes) ? custRes : (Array.isArray(custRes?.data) ? custRes.data : []);
+      const uList = Array.isArray(userRes) ? userRes : (Array.isArray(userRes?.data) ? userRes.data : []);
       setCustomers(list);
+      setUsers(uList);
     } catch (err) {
-      toast.error(err.message || 'Failed to load customers');
+      toast.error(err.message || 'Failed to load data');
       setCustomers([]);
     } finally {
       setLoading(false);
@@ -35,103 +55,95 @@ export default function CustomersScreen({ navigation }) {
   }, [toast]);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchCustomers();
-    });
+    const unsubscribe = navigation.addListener('focus', () => fetchAll());
     return unsubscribe;
-  }, [navigation, fetchCustomers]);
+  }, [navigation, fetchAll]);
 
-  const statusCounts = useMemo(() => {
-    const counts = { All: customers.length, Interested: 0, "Visit Scheduled": 0, "Visit Completed": 0, "Ready for Booking": 0, Booked: 0, "Payment Done": 0, Dropped: 0 };
-    customers.forEach(c => {
-      if (counts[c.status] !== undefined) counts[c.status]++;
+  const teamUserIds = useMemo(() => {
+    if (!users.length || !user?.id) return [user?.id].filter(Boolean);
+    const downline = getDownline(users, user.id);
+    return [user.id, ...downline];
+  }, [users, user]);
+
+  const myCustomers = useMemo(() => {
+    return customers.filter(c => teamUserIds.includes(c.createdById || c.createdBy));
+  }, [customers, teamUserIds]);
+
+  const expandedCustomers = useMemo(() => {
+    const rows = [];
+    myCustomers.forEach((c) => {
+      const visits = c.visits && c.visits.length > 0 ? c.visits : null;
+      if (!visits) {
+        rows.push({ ...c, _rowKey: `${c.id}-base` });
+      } else {
+        visits.forEach((v, idx) => {
+          rows.push({
+            ...c,
+            siteName: v.siteName || c.siteName || "—",
+            visitDate: v.visitDate || c.visitDate || "",
+            visitTime: v.visitTime || c.visitTime || "",
+            status: v.status || c.status,
+            _visitId: v.id,
+            _rowKey: `${c.id}-${v.id ?? idx}`,
+          });
+        });
+      }
     });
-    return counts;
-  }, [customers]);
+    return rows;
+  }, [myCustomers]);
+
+  const getCreatorName = (customer) => {
+    const visit = customer.visits?.[0];
+    if (visit?.registeredBy) return visit.registeredBy;
+    const creator = users.find(u => u.id === (customer.createdById || customer.createdBy));
+    return creator ? creator.name : customer.salesManagerName || "—";
+  };
+
+  const searchedCustomers = useMemo(() => {
+    if (!search.trim()) return expandedCustomers;
+    const s = search.toLowerCase().trim();
+    return expandedCustomers.filter(c => 
+      c.name?.toLowerCase().includes(s) ||
+      c.mobile?.includes(s) ||
+      c.siteName?.toLowerCase().includes(s) ||
+      c.salesManagerName?.toLowerCase().includes(s) ||
+      String(c.createdById || c.createdBy || "").includes(s)
+    );
+  }, [expandedCustomers, search]);
 
   const filteredCustomers = useMemo(() => {
-    let result = customers;
-    if (search.trim()) {
-      const s = search.toLowerCase().trim();
-      result = result.filter(c => 
-        c.name?.toLowerCase().includes(s) ||
-        c.mobile?.includes(s) ||
-        c.siteName?.toLowerCase().includes(s)
-      );
-    }
+    let result = searchedCustomers;
     if (statusFilter !== "All") {
       result = result.filter(c => c.status === statusFilter);
     }
     return result;
-  }, [customers, search, statusFilter]);
+  }, [searchedCustomers, statusFilter]);
 
-  const filterOptions = [
-    { key: "All", label: "All" },
-    { key: "Interested", label: "Interested" },
-    { key: "Visit Scheduled", label: "Visit Scheduled" },
-    { key: "Visit Completed", label: "Visit Completed" },
-  ];
+  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE) || 1;
+  const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Interested': return { bg: '#dbeafe', text: '#1d4ed8' };
-      case 'Visit Scheduled': return { bg: '#fef08a', text: '#a16207' };
-      case 'Visit Completed': return { bg: '#dcfce7', text: '#15803d' };
-      case 'Ready for Booking': return { bg: '#e0e7ff', text: '#4338ca' };
-      case 'Booked': return { bg: '#d1fae5', text: '#047857' };
-      case 'Payment Done': return { bg: '#d1fae5', text: '#047857' };
-      case 'Dropped': return { bg: '#fee2e2', text: '#b91c1c' };
-      case 'Follow-up': return { bg: '#ffedd5', text: '#c2410c' };
-      default: return { bg: '#f1f5f9', text: '#475569' };
-    }
-  };
+  const statusCounts = useMemo(() => {
+    const counts = { All: myCustomers.length, Interested: 0, "Visit Scheduled": 0, "Visit Completed": 0, "Ready for Booking": 0, Booked: 0, "Payment Done": 0, Dropped: 0 };
+    myCustomers.forEach(c => {
+      if (counts[c.status] !== undefined) counts[c.status]++;
+    });
+    return counts;
+  }, [myCustomers]);
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yy = String(d.getFullYear()).slice(-2);
-    return `${dd}/${mm}/${yy}`;
-  };
+  const bookedCount = statusCounts["Booked"] + statusCounts["Payment Done"];
 
-  const renderCustomerItem = (item) => {
-    const statusColor = getStatusColor(item.status);
+  const StatusBadge = ({ status }) => {
+    let bg = colors.slate100, text = colors.slate600;
+    if (status === 'Interested') { bg = '#f3e8ff'; text = '#7e22ce'; }
+    else if (status === 'Visit Scheduled') { bg = '#fef08a'; text = '#a16207'; }
+    else if (status === 'Visit Completed') { bg = '#dcfce7'; text = '#15803d'; }
+    else if (status === 'Booked' || status === 'Payment Done') { bg = '#d1fae5'; text = '#047857'; }
+    else if (status === 'Ready for Booking') { bg = '#e0e7ff'; text = '#4338ca'; }
+    else if (status === 'Dropped') { bg = '#fee2e2'; text = '#b91c1c'; }
+
     return (
-      <View key={item.id} style={styles.customerCard}>
-        <View style={styles.customerHeader}>
-          <Text style={styles.customerName}>{item.name}</Text>
-          <View style={[styles.badge, { backgroundColor: statusColor.bg }]}>
-            <Text style={[styles.badgeText, { color: statusColor.text }]}>{item.status}</Text>
-          </View>
-        </View>
-        
-        <View style={styles.customerDetailsRow}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Mobile</Text>
-            <Text style={styles.detailValue}>{item.mobile}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Visit Date</Text>
-            <Text style={styles.detailValue}>{formatDate(item.visitDate)}</Text>
-          </View>
-        </View>
-        
-        <View style={styles.customerDetailsRow}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Site</Text>
-            <Text style={styles.detailValue}>{item.siteName || '—'}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity 
-          style={styles.viewBtn} 
-          onPress={() => setViewCustomer(item)}
-        >
-          <Eye size={16} color={colors.primary} />
-          <Text style={styles.viewBtnText}>View Details</Text>
-        </TouchableOpacity>
+      <View style={[styles.badge, { backgroundColor: bg }]}>
+        <Text style={[styles.badgeText, { color: text }]}>{status || "Interested"}</Text>
       </View>
     );
   };
@@ -139,141 +151,122 @@ export default function CustomersScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <TopBar />
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        <View style={styles.headerArea}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        
+        <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>Customer Overview</Text>
-          <Text style={styles.pageSubtitle}>Team customer performance</Text>
+          <Text style={styles.pageSub}>Team customer performance</Text>
         </View>
 
-        <View style={styles.summaryContainer}>
+        <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Summary</Text>
           <View style={styles.summaryGrid}>
-            <View style={styles.summaryBox}>
-              <Text style={[styles.summaryVal, { color: colors.primary }]}>{statusCounts.All}</Text>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryVal, { color: colors.primary }]}>{myCustomers.length}</Text>
               <Text style={styles.summaryLabel}>Total</Text>
             </View>
-            <View style={styles.summaryBox}>
-              <Text style={[styles.summaryVal, { color: '#16a34a' }]}>{statusCounts.Booked + statusCounts["Payment Done"]}</Text>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryVal, { color: '#16a34a' }]}>{bookedCount}</Text>
               <Text style={styles.summaryLabel}>Booked</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.listContainer}>
-          <View style={styles.listHeader}>
-            <Text style={styles.listTitle}>My Customers</Text>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>My Customers</Text>
           </View>
-          
-          <View style={[styles.searchWrap, searchFocused && styles.searchWrapFocused]}>
+
+          <View style={styles.searchBox}>
             <Search size={16} color={colors.slate400} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search by Name, Mobile, Site..."
+              placeholder="Search customers..."
               value={search}
-              onChangeText={setSearch}
-              placeholderTextColor={colors.slate400}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
+              onChangeText={t => { setSearch(t); setCurrentPage(1); }}
             />
-          </View>
-          
-          <View style={styles.filterWrap}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {filterOptions.map(opt => (
-                <TouchableOpacity 
-                  key={opt.key} 
-                  style={[styles.filterChip, statusFilter === opt.key && styles.filterChipActive]}
-                  onPress={() => setStatusFilter(opt.key)}
-                >
-                  <Text style={[styles.filterChipText, statusFilter === opt.key && styles.filterChipTextActive]}>
-                    {opt.label} ({opt.key === 'All' ? statusCounts.All : statusCounts[opt.key] || 0})
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-          
-          <View style={styles.listContent}>
-            {loading ? (
-              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40, marginBottom: 40 }} />
-            ) : filteredCustomers.length === 0 ? (
-              <View style={styles.emptyState}>
-                <UserX size={40} color={colors.slate300} />
-                <Text style={styles.emptyText}>No customers found</Text>
-              </View>
-            ) : (
-              filteredCustomers.map(renderCustomerItem)
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => { setSearch(""); setCurrentPage(1); }} style={styles.searchClear}>
+                <X size={14} color={colors.slate400} />
+              </TouchableOpacity>
             )}
           </View>
-        </View>
-      </ScrollView>
 
-      {/* Customer Detail Modal */}
-      <Modal visible={!!viewCustomer} animationType="slide" transparent={true} onRequestClose={() => setViewCustomer(null)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {viewCustomer && (
-              <>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Customer Details</Text>
-                  <TouchableOpacity onPress={() => setViewCustomer(null)}>
-                    <X size={24} color={colors.slate600} />
-                  </TouchableOpacity>
-                </View>
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                  <View style={styles.modalProfileRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterScrollContent}>
+            {["All", "Interested", "Visit Scheduled", "Visit Completed", "Ready for Booking", "Booked"].map(s => (
+              <TouchableOpacity 
+                key={s} 
+                style={[styles.filterChip, statusFilter === s && styles.filterChipActive]}
+                onPress={() => { setStatusFilter(s); setCurrentPage(1); }}
+              >
+                <Text style={[styles.filterChipText, statusFilter === s && styles.filterChipTextActive]}>
+                  {s}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {loading ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : paginatedCustomers.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>No customers found</Text>
+            </View>
+          ) : (
+            <View style={styles.list}>
+              {paginatedCustomers.map(c => (
+                <View key={c._rowKey} style={styles.customerRow}>
+                  <View style={styles.custMain}>
                     <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{viewCustomer.name?.charAt(0)}</Text>
+                      <Text style={styles.avatarText}>{c.name?.charAt(0) || 'C'}</Text>
                     </View>
-                    <View style={styles.modalProfileInfo}>
-                      <Text style={styles.modalName}>{viewCustomer.name}</Text>
-                      <Text style={styles.modalMobile}>{viewCustomer.mobile}</Text>
+                    <View style={styles.custInfo}>
+                      <Text style={styles.custName}>{c.name}</Text>
+                      <Text style={styles.custPhone}>{c.mobile || "—"}</Text>
                     </View>
-                    <View style={[styles.badge, { backgroundColor: getStatusColor(viewCustomer.status).bg }]}>
-                      <Text style={[styles.badgeText, { color: getStatusColor(viewCustomer.status).text }]}>{viewCustomer.status}</Text>
-                    </View>
+                    <StatusBadge status={c.status} />
                   </View>
-
-                  <View style={styles.infoGrid}>
-                    <View style={styles.infoRow}><Text style={styles.infoLabel}>Email</Text><Text style={styles.infoVal}>{viewCustomer.email || '—'}</Text></View>
-                    <View style={styles.infoRow}><Text style={styles.infoLabel}>Site</Text><Text style={styles.infoVal}>{viewCustomer.siteName || '—'}</Text></View>
-                    <View style={styles.infoRow}><Text style={styles.infoLabel}>Visit Date</Text><Text style={styles.infoVal}>{formatDate(viewCustomer.visitDate)}</Text></View>
-                    <View style={styles.infoRow}><Text style={styles.infoLabel}>Visit Time</Text><Text style={styles.infoVal}>{viewCustomer.visitTime || '—'}</Text></View>
-                    <View style={styles.infoRow}><Text style={styles.infoLabel}>Persons</Text><Text style={styles.infoVal}>{viewCustomer.persons || '—'}</Text></View>
-                    <View style={styles.infoRow}><Text style={styles.infoLabel}>Purchase Mode</Text><Text style={styles.infoVal}>{viewCustomer.purchaseMode || '—'}</Text></View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Location</Text>
-                      {viewCustomer.location ? (
-                        <TouchableOpacity onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(viewCustomer.location)}`)}>
-                          <Text style={[styles.infoVal, { color: colors.primary, textDecorationLine: 'underline' }]}>{viewCustomer.location} ↗</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <Text style={styles.infoVal}>—</Text>
-                      )}
-                    </View>
-                    <View style={styles.infoRow}><Text style={styles.infoLabel}>Address</Text><Text style={styles.infoVal}>{viewCustomer.address || '—'}</Text></View>
-                  </View>
-
-                  {viewCustomer.notes && (
-                    <View style={styles.notesSection}>
-                      <Text style={styles.notesTitle}>Notes</Text>
-                      <Text style={styles.notesText}>{viewCustomer.notes}</Text>
-                    </View>
-                  )}
                   
-                  {(viewCustomer.driverName || viewCustomer.cabNumber) && (
-                    <View style={styles.notesSection}>
-                      <Text style={[styles.notesTitle, {color: colors.primary}]}>🚗 Driver Details</Text>
-                      <View style={styles.infoRow}><Text style={styles.infoLabel}>Name</Text><Text style={styles.infoVal}>{viewCustomer.driverName || '—'}</Text></View>
-                      <View style={styles.infoRow}><Text style={styles.infoLabel}>Cab Number</Text><Text style={styles.infoVal}>{viewCustomer.cabNumber || '—'}</Text></View>
+                  <View style={styles.custMeta}>
+                    <View style={styles.metaCol}>
+                      <View style={styles.metaRow}><MapPin size={10} color={colors.slate400} /><Text style={styles.metaText}>{c.siteName || '—'}</Text></View>
+                      <View style={styles.metaRow}><Clock size={10} color={colors.slate400} /><Text style={styles.metaText}>{c.visitDate || '—'} {c.visitTime || ''}</Text></View>
                     </View>
-                  )}
-                </ScrollView>
-              </>
-            )}
-          </View>
+                    <View style={styles.metaCol}>
+                      <View style={styles.metaRow}><User size={10} color={colors.slate400} /><Text style={styles.metaText}>{getCreatorName(c)}</Text></View>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {totalPages > 1 && (
+            <View style={styles.pagination}>
+              <TouchableOpacity
+                style={[styles.pageBtn, currentPage === 1 && styles.pageBtnDisabled]}
+                onPress={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} color={currentPage === 1 ? colors.slate300 : colors.slate600} />
+                <Text style={[styles.pageText, currentPage === 1 && { color: colors.slate300 }]}>Prev</Text>
+              </TouchableOpacity>
+              <Text style={styles.pageInfo}>Page {currentPage} of {totalPages}</Text>
+              <TouchableOpacity
+                style={[styles.pageBtn, currentPage === totalPages && styles.pageBtnDisabled]}
+                onPress={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <Text style={[styles.pageText, currentPage === totalPages && { color: colors.slate300 }]}>Next</Text>
+                <ChevronRight size={16} color={currentPage === totalPages ? colors.slate300 : colors.slate600} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-      </Modal>
+
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -281,66 +274,59 @@ export default function CustomersScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.white },
   container: { flex: 1, backgroundColor: colors.slate50 },
-  headerArea: { paddingHorizontal: 16, paddingVertical: 16, backgroundColor: colors.white },
-  pageTitle: { fontSize: 22, fontWeight: 'bold', color: colors.slate900 },
-  pageSubtitle: { fontSize: 14, color: colors.slate400, marginTop: 4 },
+  content: { padding: 16, paddingBottom: 100 },
   
-  summaryContainer: { marginHorizontal: 16, marginTop: 16, backgroundColor: colors.white, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.slate100 },
-  summaryTitle: { fontSize: 14, fontWeight: '700', color: colors.slate800, marginBottom: 12 },
+  pageHeader: { marginBottom: 16 },
+  pageTitle: { fontSize: 20, fontWeight: 'bold', color: colors.slate900 },
+  pageSub: { fontSize: 13, color: colors.slate400, marginTop: 2 },
+  
+  summaryCard: { backgroundColor: colors.white, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.slate100 },
+  summaryTitle: { fontSize: 13, fontWeight: 'bold', color: colors.slate800, marginBottom: 12 },
   summaryGrid: { flexDirection: 'row', gap: 12 },
-  summaryBox: { flex: 1, backgroundColor: colors.slate50, borderRadius: 12, padding: 12, alignItems: 'center' },
+  summaryItem: { flex: 1, backgroundColor: colors.slate50, borderRadius: 12, padding: 12, alignItems: 'center' },
   summaryVal: { fontSize: 24, fontWeight: 'bold', marginBottom: 2 },
-  summaryLabel: { fontSize: 12, color: colors.slate400 },
+  summaryLabel: { fontSize: 11, color: colors.slate400, fontWeight: '500' },
   
-  listContainer: { marginHorizontal: 16, marginTop: 16, backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.slate100, overflow: 'hidden' },
-  listHeader: { padding: 16, paddingBottom: 8 },
-  listTitle: { fontSize: 14, fontWeight: '700', color: colors.slate800 },
+  card: { backgroundColor: colors.white, borderRadius: 16, borderWidth: 1, borderColor: colors.slate100, overflow: 'hidden' },
+  cardHeader: { padding: 16, paddingBottom: 8 },
+  cardTitle: { fontSize: 13, fontWeight: 'bold', color: colors.slate800 },
   
-  searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.slate50, marginHorizontal: 16, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.slate200, height: 44, marginBottom: 16 },
-  searchWrapFocused: { borderColor: colors.primary, borderWidth: 1.5, backgroundColor: colors.primarySoft || '#eff6ff' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.slate50, borderWidth: 1, borderColor: colors.slate200, borderRadius: 12, marginHorizontal: 16, marginBottom: 12, paddingHorizontal: 12, height: 40 },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 13, color: colors.slate800, minHeight: 44 },
+  searchInput: { flex: 1, fontSize: 13, color: colors.slate800 },
+  searchClear: { padding: 4 },
   
-  filterWrap: { paddingHorizontal: 16, paddingBottom: 16 },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.slate100, marginRight: 8, borderWidth: 1, borderColor: colors.slate200 },
-  filterChipActive: { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' },
-  filterChipText: { fontSize: 12, fontWeight: '500', color: colors.slate600 },
-  filterChipTextActive: { color: colors.primary, fontWeight: '600' },
+  filterScroll: { marginHorizontal: 16, marginBottom: 12 },
+  filterScrollContent: { paddingRight: 16, gap: 8 },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.slate50, borderWidth: 1, borderColor: colors.slate200 },
+  filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  filterChipText: { fontSize: 11, fontWeight: '600', color: colors.slate600 },
+  filterChipTextActive: { color: colors.white },
   
-  listContent: { paddingHorizontal: 16, paddingBottom: 16 },
-  customerCard: { backgroundColor: colors.white, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.slate100, shadowColor: colors.black, shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
-  customerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  customerName: { fontSize: 16, fontWeight: '700', color: colors.slate800 },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  loadingBox: { padding: 40, alignItems: 'center' },
+  emptyBox: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 13, color: colors.slate400, fontWeight: '500' },
+  
+  list: { borderTopWidth: 1, borderColor: colors.slate50 },
+  customerRow: { padding: 16, borderBottomWidth: 1, borderColor: colors.slate50 },
+  custMain: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  avatar: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.blue50, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  avatarText: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
+  custInfo: { flex: 1 },
+  custName: { fontSize: 14, fontWeight: 'bold', color: colors.slate800 },
+  custPhone: { fontSize: 12, color: colors.slate400 },
+  
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   badgeText: { fontSize: 10, fontWeight: '700' },
   
-  customerDetailsRow: { flexDirection: 'row', marginBottom: 10 },
-  detailItem: { flex: 1 },
-  detailLabel: { fontSize: 11, color: colors.slate400, fontWeight: '500', marginBottom: 2 },
-  detailValue: { fontSize: 13, color: colors.slate700, fontWeight: '500' },
+  custMeta: { flexDirection: 'row', backgroundColor: colors.slate50, borderRadius: 8, padding: 10, gap: 16 },
+  metaCol: { flex: 1, gap: 6 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaText: { fontSize: 11, color: colors.slate600, fontWeight: '500' },
   
-  viewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', paddingVertical: 8, borderRadius: 8, marginTop: 4 },
-  viewBtnText: { marginLeft: 6, fontSize: 12, fontWeight: '600', color: colors.primary },
-  
-  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, marginTop: 20 },
-  emptyText: { fontSize: 14, color: colors.slate400, marginTop: 12, fontWeight: '500' },
-
-  // Modal styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '80%', flexShrink: 1 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.slate100, marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.slate900 },
-  modalProfileRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  avatar: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  avatarText: { fontSize: 18, fontWeight: 'bold', color: colors.white },
-  modalProfileInfo: { flex: 1 },
-  modalName: { fontSize: 16, fontWeight: 'bold', color: colors.slate900 },
-  modalMobile: { fontSize: 12, color: colors.slate500, marginTop: 2 },
-  infoGrid: { gap: 12 },
-  infoRow: { marginBottom: 10 },
-  infoLabel: { fontSize: 11, color: colors.slate400, fontWeight: '600', textTransform: 'uppercase', marginBottom: 2 },
-  infoVal: { fontSize: 14, color: colors.slate800, fontWeight: '500' },
-  notesSection: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.slate100 },
-  notesTitle: { fontSize: 12, fontWeight: '600', color: colors.slate500, marginBottom: 6 },
-  notesText: { fontSize: 13, color: colors.slate700, lineHeight: 20 },
+  pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderTopWidth: 1, borderColor: colors.slate100 },
+  pageBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 8, borderRadius: 8, backgroundColor: colors.slate50 },
+  pageBtnDisabled: { opacity: 0.4 },
+  pageText: { fontSize: 12, fontWeight: '600', color: colors.slate600 },
+  pageInfo: { fontSize: 12, color: colors.slate500, fontWeight: '500' }
 });
