@@ -8,6 +8,11 @@ import { useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import SiteVisitScreen from '../screens/SiteVisitScreen';
 import DashboardScreen from '../screens/DashboardScreen';
+import CustomersScreen from '../screens/CustomersScreen';
+import SitesScreen from '../screens/SitesScreen';
+import TeamScreen from '../screens/TeamScreen';
+import VisitsScreen from '../screens/VisitsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator();
@@ -65,18 +70,15 @@ function CustomTabBar({ state, descriptors, navigation, navItems }) {
   return (
     <View style={[styles.tabBarContainer, { paddingBottom: insets.bottom, height: 72 + insets.bottom }]}>
       {state.routes.map((route, index) => {
-        // Only render tabs that exist in the navItems array for this role
-        const routeName = route.name;
-        // Don't render hidden screens like Register in the bottom bar
-        if (routeName === 'Register') return null;
+        const item = navItems.find(i => i.path === route.name);
+        if (!item) return null; // Don't render tabs not meant for bottom bar
 
         const isFocused = state.index === index;
-        const item = navItems.find(i => i.path === routeName) || navItems.find(i => i.path === route.name) || { icon: Circle, label: routeName };
         const IconComponent = item.icon;
 
         const onPress = () => {
-          // As requested previously, block navigation for non-Dashboard tabs
-          if (item.path !== 'Dashboard') {
+          // Block navigation for unbuilt tabs (if any)
+          if (false) {
             return;
           }
 
@@ -129,13 +131,12 @@ function MainTabs() {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomTabBar {...props} navItems={navItems} />}
     >
-      {navItems.map((item) => (
-        <Tab.Screen 
-          key={item.path} 
-          name={item.path} 
-          component={item.path === 'Dashboard' ? DashboardScreen : PlaceholderScreen} 
-        />
-      ))}
+      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Sites" component={SitesScreen} />
+      <Tab.Screen name="Team" component={TeamScreen} />
+      <Tab.Screen name="Customers" component={CustomersScreen} />
+      <Tab.Screen name="Visits" component={VisitsScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Register" component={SiteVisitScreen} />
     </Tab.Navigator>
   );

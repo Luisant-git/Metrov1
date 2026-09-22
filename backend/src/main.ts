@@ -24,6 +24,13 @@ async function bootstrap() {
   const { join } = require('path');
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
+    setHeaders: (res, path) => {
+      // If the file has no extension, assume it's a JPEG image 
+      // (fixes legacy mobile uploads that were saved without an extension)
+      if (!path.includes('.')) {
+        res.set('Content-Type', 'image/jpeg');
+      }
+    }
   });
 
   app.useGlobalPipes(

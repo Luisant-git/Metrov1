@@ -180,11 +180,29 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem("re_user");
-    if (saved) {
-      try { setUser(JSON.parse(saved)); } catch {}
-    }
-    setLoading(false);
+    const initializeAuth = async () => {
+      const saved = localStorage.getItem("re_user");
+      if (saved) {
+        try { setUser(JSON.parse(saved)); } catch {}
+      }
+      
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        try {
+          const profile = await auth.getProfile();
+          if (profile) {
+            setUser(profile);
+            localStorage.setItem("re_user", JSON.stringify(profile));
+          }
+        } catch (err) {
+          console.error("Failed to sync profile from server:", err);
+        }
+      }
+      
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (identifier, password) => {

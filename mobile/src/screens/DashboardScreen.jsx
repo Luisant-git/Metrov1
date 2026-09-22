@@ -103,7 +103,11 @@ export default function DashboardScreen({ navigation }) {
               <Text style={styles.headerSub}>{user?.role || 'Sales Manager'}</Text>
             </View>
             <View style={styles.avatarWrap}>
-              <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
+              ) : (
+                <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
+              )}
             </View>
           </View>
         </LinearGradient>
@@ -118,19 +122,18 @@ export default function DashboardScreen({ navigation }) {
             </View>
             <View style={styles.gridContainer}>
               {getQuickActions().map((action, index) => {
-                const isClickable = action.path === 'Register';
-                const Container = isClickable ? TouchableOpacity : View;
                 return (
-                  <Container 
+                  <TouchableOpacity 
                     key={index} 
                     style={styles.gridItem}
-                    {...(isClickable ? { activeOpacity: 0.7, onPress: () => navigation.navigate(action.path) } : {})}
+                    activeOpacity={0.7}
+                    onPress={() => navigation.navigate(action.path)}
                   >
                     <View style={[styles.iconBox, { backgroundColor: action.color }]}>
                       <action.icon size={20} color={colors.white} strokeWidth={2.5} />
                     </View>
                     <Text style={styles.gridLabel} numberOfLines={2}>{action.label}</Text>
-                  </Container>
+                  </TouchableOpacity>
                 );
               })}
             </View>

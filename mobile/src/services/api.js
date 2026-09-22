@@ -18,7 +18,7 @@ export class ApiError extends Error {
   }
 }
 
-async function getToken() {
+export async function getToken() {
   try {
     return await storage.getToken();
   } catch (e) {
