@@ -43,7 +43,7 @@ npm-debug.log
 yarn-error.log
 
 # Expo Native directories (let EAS prebuild them)
-android/
+# android/
 ios/
 # fastlane
 #
